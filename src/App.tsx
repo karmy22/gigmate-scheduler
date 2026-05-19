@@ -43,6 +43,8 @@ import {
   Shield,
   Bell,
   Mail,
+  Phone,
+  LockKeyhole,
   Car,
   MapPin,
   Link as LinkIcon,
@@ -70,10 +72,16 @@ import {
 } from "firebase/firestore";
 import { 
   onAuthStateChanged, 
-  signInWithPopup, 
   signInWithRedirect,
+  signInWithEmailAndPassword,
+  createUserWithEmailAndPassword,
+  sendPasswordResetEmail,
+  signInWithPhoneNumber,
+  RecaptchaVerifier,
+  updateProfile,
   signOut,
-  User as FirebaseUser
+  User as FirebaseUser,
+  ConfirmationResult
 } from "firebase/auth";
 import { motion, AnimatePresence } from "motion/react";
 import { 
@@ -170,6 +178,7 @@ export default function App() {
   const [editMemberRole, setEditMemberRole] = useState<'leader' | 'member'>('member');
   const [editMemberColor, setEditMemberColor] = useState('');
   const [isSavingMember, setIsSavingMember] = useState(false);
+  const recaptchaVerifierRef = useRef<RecaptchaVerifier | null>(null);
 
   useEffect(() => {
     const syncSidebarLayout = () => {
@@ -342,45 +351,55 @@ export default function App() {
     };
   }, [profile?.teamId]);
 
-  const handleLogin = async () => {
-    if (!isFirebaseConfigured || !auth || !googleProvider) {
-      alert('Firebase is not configured locally. Check .env.local and restart the dev server.');
-      console.error('Firebase not configured: auth or provider missing.');
-      return;
+  const getAuthClient = () => {
+    if (!isFirebaseConfigured || !auth) {
+      throw new Error('Firebase is not configured. Check the Firebase environment variables and redeploy.');
     }
+    return auth;
+  };
 
+  const handleGoogleLogin = async () => {
+    const authClient = getAuthClient();
+    if (!googleProvider) {
+      throw new Error('Google sign-in is not configured.');
+    }
+    await signInWithRedirect(authClient, googleProvider);
+  };
+
+  const handleEmailLogin = async (email: string, password: string) => {
+    await signInWithEmailAndPassword(getAuthClient(), email.trim(), password);
+  };
+
+  const handleEmailSignup = async (email: string, password: string, displayName: string) => {
+    const credential = await createUserWithEmailAndPassword(getAuthClient(), email.trim(), password);
+    const cleanName = displayName.trim();
+    if (cleanName) {
+      await updateProfile(credential.user, { displayName: cleanName });
+    }
+  };
+
+  const handlePasswordReset = async (email: string) => {
+    await sendPasswordResetEmail(getAuthClient(), email.trim());
+  };
+
+  const handleStartPhoneLogin = async (phoneNumber: string) => {
+    const authClient = getAuthClient();
     try {
-      await signInWithPopup(auth, googleProvider);
-    } catch (err: any) {
-      console.error('Sign-in error', err);
-      const code = (err && (err.code || err.message)) ? String(err.code || err.message) : 'unknown_error';
-      const message = err?.message || String(err);
-
-      // If popup is blocked or operation isn't supported, fallback to redirect flow
-      if (code.includes('auth/operation-not-supported') || code.includes('operation-not-supported') || code.includes('auth/operation-not-supported-in-this-environment')) {
-        try {
-          alert('Popups not supported. Redirecting for sign-in...');
-          await signInWithRedirect(auth, googleProvider);
-          return;
-        } catch (redirectErr) {
-          console.error('Redirect sign-in failed', redirectErr);
-          alert('Sign-in failed: ' + (redirectErr?.message || String(redirectErr)));
-          return;
-        }
+      if (!recaptchaVerifierRef.current) {
+        recaptchaVerifierRef.current = new RecaptchaVerifier(authClient, 'recaptcha-container', {
+          size: 'invisible'
+        });
       }
-
-      if (code.includes('auth/unauthorized-domain')) {
-        alert('Sign-in failed: unauthorized domain. Add your site to Firebase Auth authorized domains (Firebase Console → Authentication → Authorized domains).');
-        return;
-      }
-
-      if (code.includes('auth/popup-blocked') || code.includes('auth/popup-closed-by-user')) {
-        alert('Sign-in interrupted: popup blocked or closed. Please allow popups and try again.');
-        return;
-      }
-
-      alert('Sign-in failed: ' + message);
+      return await signInWithPhoneNumber(authClient, phoneNumber.trim(), recaptchaVerifierRef.current);
+    } catch (error) {
+      recaptchaVerifierRef.current?.clear();
+      recaptchaVerifierRef.current = null;
+      throw error;
     }
+  };
+
+  const handleConfirmPhoneCode = async (confirmation: ConfirmationResult, code: string) => {
+    await confirmation.confirm(code.trim());
   };
 
   const handleCreateProfile = async (role: Role, teamName: string, displayName: string) => {
@@ -585,7 +604,16 @@ export default function App() {
   }
 
   if (!user) {
-    return <LoginView onLogin={handleLogin} />;
+    return (
+      <LoginView
+        onGoogleLogin={handleGoogleLogin}
+        onEmailLogin={handleEmailLogin}
+        onEmailSignup={handleEmailSignup}
+        onPasswordReset={handlePasswordReset}
+        onPhoneStart={handleStartPhoneLogin}
+        onPhoneConfirm={handleConfirmPhoneCode}
+      />
+    );
   }
 
   if (!profile || !profile.teamId) {
@@ -1427,73 +1455,288 @@ export default function App() {
 
 // --- Sub-Views ---
 
-function LoginView({ onLogin }: { onLogin: () => void }) {
+type LoginMode = 'email' | 'phone';
+
+type LoginViewProps = {
+  onGoogleLogin: () => Promise<void>;
+  onEmailLogin: (email: string, password: string) => Promise<void>;
+  onEmailSignup: (email: string, password: string, displayName: string) => Promise<void>;
+  onPasswordReset: (email: string) => Promise<void>;
+  onPhoneStart: (phoneNumber: string) => Promise<ConfirmationResult>;
+  onPhoneConfirm: (confirmation: ConfirmationResult, code: string) => Promise<void>;
+};
+
+function getAuthErrorMessage(error: unknown) {
+  const code = error && typeof error === 'object' && 'code' in error ? String((error as { code?: string }).code) : '';
+  if (code.includes('auth/unauthorized-domain')) return 'This domain is not authorized in Firebase.';
+  if (code.includes('auth/user-not-found') || code.includes('auth/wrong-password') || code.includes('auth/invalid-credential')) return 'Email or password is incorrect.';
+  if (code.includes('auth/email-already-in-use')) return 'That email already has an account.';
+  if (code.includes('auth/weak-password')) return 'Use a password with at least 6 characters.';
+  if (code.includes('auth/invalid-phone-number')) return 'Enter a phone number with country code, like +15551234567.';
+  if (code.includes('auth/too-many-requests')) return 'Too many attempts. Wait a bit and try again.';
+  if (error instanceof Error) return error.message;
+  return 'Sign-in failed. Please try again.';
+}
+
+function LoginView({
+  onGoogleLogin,
+  onEmailLogin,
+  onEmailSignup,
+  onPasswordReset,
+  onPhoneStart,
+  onPhoneConfirm
+}: LoginViewProps) {
+  const [mode, setMode] = useState<LoginMode>('email');
+  const [isCreatingAccount, setIsCreatingAccount] = useState(false);
+  const [displayName, setDisplayName] = useState('');
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [phoneNumber, setPhoneNumber] = useState('');
+  const [phoneCode, setPhoneCode] = useState('');
+  const [phoneConfirmation, setPhoneConfirmation] = useState<ConfirmationResult | null>(null);
+  const [message, setMessage] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
 
-  return (
-    <div className="min-h-screen bg-gradient-to-br from-indigo-600 via-slate-50 to-slate-100 flex items-center justify-center p-6 relative overflow-hidden">
-      {/* Background decoration */}
-      <div className="absolute top-20 right-20 w-72 h-72 bg-indigo-200/20 rounded-full blur-3xl" />
-      <div className="absolute bottom-20 left-20 w-96 h-96 bg-indigo-300/10 rounded-full blur-3xl" />
+  const runAuthAction = async (action: () => Promise<void>, successMessage?: string) => {
+    setMessage(null);
+    setIsLoading(true);
+    try {
+      await action();
+      if (successMessage) setMessage(successMessage);
+    } catch (error) {
+      console.error('Auth error:', error);
+      setMessage(getAuthErrorMessage(error));
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
-      <div className="max-w-md w-full bg-white rounded-3xl p-10 shadow-2xl border border-slate-200 relative z-10">
-        <div className="flex flex-col items-center mb-8">
-          <div className="w-16 h-16 bg-gradient-to-br from-indigo-600 to-indigo-700 rounded-3xl flex items-center justify-center text-white mb-6 shadow-lg">
-            <Briefcase className="w-8 h-8" />
+  const submitEmail = (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    if (!email.trim() || !password) {
+      setMessage('Enter an email and password.');
+      return;
+    }
+    void runAuthAction(
+      () => isCreatingAccount ? onEmailSignup(email, password, displayName) : onEmailLogin(email, password),
+    );
+  };
+
+  const submitPhone = (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    if (!phoneConfirmation) {
+      if (!phoneNumber.trim()) {
+        setMessage('Enter a phone number with country code.');
+        return;
+      }
+      void runAuthAction(async () => {
+        const confirmation = await onPhoneStart(phoneNumber);
+        setPhoneConfirmation(confirmation);
+        setPhoneCode('');
+      }, 'Code sent.');
+      return;
+    }
+    if (!phoneCode.trim()) {
+      setMessage('Enter the code from your text message.');
+      return;
+    }
+    void runAuthAction(() => onPhoneConfirm(phoneConfirmation, phoneCode));
+  };
+
+  return (
+    <div className="min-h-screen bg-slate-100 flex items-center justify-center p-4 sm:p-6">
+      <div className="w-full max-w-5xl overflow-hidden rounded-2xl bg-white shadow-2xl border border-slate-200 grid lg:grid-cols-[0.9fr_1.1fr]">
+        <div className="bg-slate-950 text-white p-8 sm:p-10 flex flex-col justify-between gap-10">
+          <div>
+            <div className="w-14 h-14 bg-emerald-500 rounded-2xl flex items-center justify-center mb-6 shadow-lg">
+              <Briefcase className="w-7 h-7" />
+            </div>
+            <h1 className="text-4xl font-black tracking-tight mb-3">GigMate</h1>
+            <p className="text-slate-300 text-sm leading-6 max-w-sm">Team scheduling, chat, earnings, and mileage in one installable workspace.</p>
           </div>
-          <h1 className="text-3xl font-black text-slate-900 mb-2 tracking-tight">GigMate</h1>
-          <p className="text-sm text-slate-600 text-center leading-relaxed">Schedule. Collaborate. Earn. Together.</p>
+          <div className="grid gap-3 text-sm text-slate-200">
+            {['Create or join a team', 'Schedule shifts together', 'Track earnings and mileage'].map(item => (
+              <div key={item} className="flex items-center gap-3">
+                <CheckCircle2 className="w-5 h-5 text-emerald-400 shrink-0" />
+                <span>{item}</span>
+              </div>
+            ))}
+          </div>
         </div>
 
-        <button 
-          disabled={isLoading}
-          onClick={async () => {
-            setIsLoading(true);
-            try {
-              await onLogin();
-            } catch (error) {
-              console.error('Login error:', error);
-              alert('Sign-in failed. Please try again.');
-            } finally {
-              setIsLoading(false);
-            }
-          }}
-          className="w-full bg-gradient-to-r from-indigo-600 to-indigo-700 text-white rounded-2xl py-4 px-6 font-bold hover:from-indigo-700 hover:to-indigo-800 transition-all flex items-center justify-center gap-3 active:scale-[0.98] shadow-lg shadow-indigo-600/20 disabled:opacity-50 disabled:cursor-not-allowed"
-        >
-          {isLoading ? (
-            <>
-              <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-              Signing in...
-            </>
-          ) : (
-            <>
-              <svg className="w-5 h-5" viewBox="0 0 24 24" fill="currentColor">
-                <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#fff"/>
-                <path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#fff"/>
-                <path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" fill="#fff"/>
-                <path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#fff"/>
-              </svg>
-              Sign in with Google
-            </>
-          )}
-        </button>
-
-        <div className="mt-8 pt-6 border-t border-slate-200">
-          <p className="text-xs text-slate-500 text-center mb-4">No account needed. Google login gets you started instantly.</p>
-          <div className="space-y-2">
-            <div className="flex items-center gap-2 text-xs text-slate-600">
-              <CheckCircle2 className="w-4 h-4 text-green-600 shrink-0" />
-              <span>Create or join a team</span>
-            </div>
-            <div className="flex items-center gap-2 text-xs text-slate-600">
-              <CheckCircle2 className="w-4 h-4 text-green-600 shrink-0" />
-              <span>Schedule shifts together</span>
-            </div>
-            <div className="flex items-center gap-2 text-xs text-slate-600">
-              <CheckCircle2 className="w-4 h-4 text-green-600 shrink-0" />
-              <span>Track earnings & mileage</span>
-            </div>
+        <div className="p-6 sm:p-10">
+          <div className="mb-7">
+            <p className="text-xs font-black uppercase tracking-widest text-emerald-700 mb-2">Account</p>
+            <h2 className="text-2xl sm:text-3xl font-black text-slate-950 tracking-tight">Sign in to continue</h2>
           </div>
+
+          <button
+            disabled={isLoading}
+            onClick={() => void runAuthAction(onGoogleLogin)}
+            className="w-full h-12 rounded-xl border border-slate-300 bg-white text-slate-900 font-bold hover:bg-slate-50 transition-all flex items-center justify-center gap-3 disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            <span className="w-5 h-5 rounded-full bg-slate-950 text-white text-xs font-black flex items-center justify-center">G</span>
+            Continue with Google
+          </button>
+
+          <div className="flex items-center gap-3 my-6">
+            <div className="h-px flex-1 bg-slate-200" />
+            <span className="text-xs font-bold uppercase tracking-widest text-slate-400">or</span>
+            <div className="h-px flex-1 bg-slate-200" />
+          </div>
+
+          <div className="grid grid-cols-2 gap-2 rounded-xl bg-slate-100 p-1 mb-5">
+            <button
+              type="button"
+              onClick={() => setMode('email')}
+              className={cn(
+                "h-11 rounded-lg text-sm font-black transition-all flex items-center justify-center gap-2",
+                mode === 'email' ? "bg-white text-slate-950 shadow-sm" : "text-slate-500 hover:text-slate-700"
+              )}
+            >
+              <Mail className="w-4 h-4" />
+              Email
+            </button>
+            <button
+              type="button"
+              onClick={() => setMode('phone')}
+              className={cn(
+                "h-11 rounded-lg text-sm font-black transition-all flex items-center justify-center gap-2",
+                mode === 'phone' ? "bg-white text-slate-950 shadow-sm" : "text-slate-500 hover:text-slate-700"
+              )}
+            >
+              <Phone className="w-4 h-4" />
+              Phone
+            </button>
+          </div>
+
+          {mode === 'email' ? (
+            <form onSubmit={submitEmail} className="space-y-4">
+              {isCreatingAccount && (
+                <label className="block">
+                  <span className="text-xs font-bold uppercase tracking-widest text-slate-500 mb-2 block">Name</span>
+                  <div className="relative">
+                    <User className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+                    <input
+                      value={displayName}
+                      onChange={(event) => setDisplayName(event.target.value)}
+                      className="w-full h-12 pl-11 pr-4 rounded-xl border border-slate-300 focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                      placeholder="Your name"
+                    />
+                  </div>
+                </label>
+              )}
+              <label className="block">
+                <span className="text-xs font-bold uppercase tracking-widest text-slate-500 mb-2 block">Email</span>
+                <div className="relative">
+                  <Mail className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+                  <input
+                    type="email"
+                    value={email}
+                    onChange={(event) => setEmail(event.target.value)}
+                    className="w-full h-12 pl-11 pr-4 rounded-xl border border-slate-300 focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                    placeholder="you@example.com"
+                    autoComplete="email"
+                  />
+                </div>
+              </label>
+              <label className="block">
+                <span className="text-xs font-bold uppercase tracking-widest text-slate-500 mb-2 block">Password</span>
+                <div className="relative">
+                  <LockKeyhole className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+                  <input
+                    type="password"
+                    value={password}
+                    onChange={(event) => setPassword(event.target.value)}
+                    className="w-full h-12 pl-11 pr-4 rounded-xl border border-slate-300 focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                    placeholder="Password"
+                    autoComplete={isCreatingAccount ? 'new-password' : 'current-password'}
+                  />
+                </div>
+              </label>
+              <button
+                disabled={isLoading}
+                className="w-full h-12 rounded-xl bg-emerald-600 text-white font-black hover:bg-emerald-700 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {isLoading ? 'Working...' : isCreatingAccount ? 'Create account' : 'Sign in'}
+              </button>
+              <div className="flex flex-wrap items-center justify-between gap-3 text-sm">
+                <button type="button" onClick={() => setIsCreatingAccount(value => !value)} className="font-bold text-slate-700 hover:text-slate-950">
+                  {isCreatingAccount ? 'Use existing account' : 'Create an account'}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (!email.trim()) {
+                      setMessage('Enter your email first.');
+                      return;
+                    }
+                    void runAuthAction(() => onPasswordReset(email), 'Password reset email sent.');
+                  }}
+                  className="font-bold text-emerald-700 hover:text-emerald-800"
+                >
+                  Reset password
+                </button>
+              </div>
+            </form>
+          ) : (
+            <form onSubmit={submitPhone} className="space-y-4">
+              <label className="block">
+                <span className="text-xs font-bold uppercase tracking-widest text-slate-500 mb-2 block">Phone</span>
+                <div className="relative">
+                  <Phone className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+                  <input
+                    type="tel"
+                    value={phoneNumber}
+                    onChange={(event) => setPhoneNumber(event.target.value)}
+                    className="w-full h-12 pl-11 pr-4 rounded-xl border border-slate-300 focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                    placeholder="+15551234567"
+                    autoComplete="tel"
+                    disabled={Boolean(phoneConfirmation)}
+                  />
+                </div>
+              </label>
+              {phoneConfirmation && (
+                <label className="block">
+                  <span className="text-xs font-bold uppercase tracking-widest text-slate-500 mb-2 block">Code</span>
+                  <input
+                    inputMode="numeric"
+                    value={phoneCode}
+                    onChange={(event) => setPhoneCode(event.target.value)}
+                    className="w-full h-12 px-4 rounded-xl border border-slate-300 focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                    placeholder="123456"
+                    autoComplete="one-time-code"
+                  />
+                </label>
+              )}
+              <button
+                disabled={isLoading}
+                className="w-full h-12 rounded-xl bg-emerald-600 text-white font-black hover:bg-emerald-700 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {isLoading ? 'Working...' : phoneConfirmation ? 'Verify code' : 'Text me a code'}
+              </button>
+              {phoneConfirmation && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setPhoneConfirmation(null);
+                    setPhoneCode('');
+                    setMessage(null);
+                  }}
+                  className="w-full h-10 text-sm font-bold text-slate-600 hover:text-slate-950"
+                >
+                  Use a different number
+                </button>
+              )}
+            </form>
+          )}
+
+          {message && (
+            <div className="mt-5 rounded-xl border border-slate-200 bg-slate-50 p-4 text-sm font-semibold text-slate-700">
+              {message}
+            </div>
+          )}
+          <div id="recaptcha-container" className="min-h-0" />
         </div>
       </div>
     </div>
