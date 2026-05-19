@@ -1468,6 +1468,8 @@ type LoginViewProps = {
 
 function getAuthErrorMessage(error: unknown) {
   const code = error && typeof error === 'object' && 'code' in error ? String((error as { code?: string }).code) : '';
+  if (code.includes('auth/api-key-expired') || code.includes('api-key-expired')) return 'Firebase says this API key is expired. Replace VITE_FIREBASE_API_KEY with the current Firebase web app key, then restart the app.';
+  if (code.includes('auth/api-key-not-valid') || code.includes('api-key-not-valid')) return 'Firebase rejected this API key. Check VITE_FIREBASE_API_KEY and restart the app.';
   if (code.includes('auth/unauthorized-domain')) return 'This domain is not authorized in Firebase.';
   if (code.includes('auth/user-not-found') || code.includes('auth/wrong-password') || code.includes('auth/invalid-credential')) return 'Email or password is incorrect.';
   if (code.includes('auth/email-already-in-use')) return 'That email already has an account.';
