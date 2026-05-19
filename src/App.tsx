@@ -72,6 +72,7 @@ import {
 } from "firebase/firestore";
 import { 
   onAuthStateChanged, 
+  signInWithPopup,
   signInWithRedirect,
   signInWithEmailAndPassword,
   createUserWithEmailAndPassword,
@@ -368,7 +369,17 @@ export default function App() {
     if (!googleProvider) {
       throw new Error('Google sign-in is not configured.');
     }
-    await signInWithRedirect(authClient, googleProvider);
+    googleProvider.setCustomParameters({ prompt: 'select_account' });
+    try {
+      await signInWithPopup(authClient, googleProvider);
+    } catch (error) {
+      const code = error && typeof error === 'object' && 'code' in error ? String((error as { code?: string }).code) : '';
+      if (code.includes('auth/popup-blocked') || code.includes('auth/popup-closed-by-user') || code.includes('auth/cancelled-popup-request')) {
+        await signInWithRedirect(authClient, googleProvider);
+        return;
+      }
+      throw error;
+    }
   };
 
   const handleEmailLogin = async (email: string, password: string) => {
@@ -1475,6 +1486,7 @@ function getAuthErrorMessage(error: unknown) {
   const code = error && typeof error === 'object' && 'code' in error ? String((error as { code?: string }).code) : '';
   if (code.includes('auth/api-key-expired') || code.includes('api-key-expired')) return 'Firebase says this API key is expired. Replace VITE_FIREBASE_API_KEY with the current Firebase web app key, then restart the app.';
   if (code.includes('auth/api-key-not-valid') || code.includes('api-key-not-valid')) return 'Firebase rejected this API key. Check VITE_FIREBASE_API_KEY and restart the app.';
+  if (code.includes('auth/invalid-action-code') || code.includes('invalid-action')) return 'Firebase rejected the redirect sign-in link. Close that Firebase handler tab and try Google again from the GigMate login page.';
   if (code.includes('auth/unauthorized-domain')) return 'This domain is not authorized in Firebase.';
   if (code.includes('auth/user-not-found') || code.includes('auth/wrong-password') || code.includes('auth/invalid-credential')) return 'Email or password is incorrect.';
   if (code.includes('auth/email-already-in-use')) return 'That email already has an account.';
