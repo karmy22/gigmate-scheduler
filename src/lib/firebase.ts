@@ -1,13 +1,20 @@
 import { initializeApp } from 'firebase/app';
+import type { FirebaseApp } from 'firebase/app';
 import { getAuth, GoogleAuthProvider } from 'firebase/auth';
+import type { Auth } from 'firebase/auth';
 import { getFirestore } from 'firebase/firestore';
+import type { Firestore } from 'firebase/firestore';
 
-function requireEnv(name: keyof ImportMetaEnv) {
-  const value = import.meta.env[name];
-  if (!value) {
-    throw new Error(`Missing required environment variable: ${name}`);
+export class FirebaseConfigError extends Error {
+  constructor(message: string) {
+    super(message);
+    this.name = 'FirebaseConfigError';
   }
-  return value;
+}
+
+function requireEnv(name: keyof ImportMetaEnv): string | null {
+  const value = import.meta.env[name];
+  return value || null;
 }
 
 const firebaseConfig = {
@@ -17,19 +24,49 @@ const firebaseConfig = {
   storageBucket: requireEnv('VITE_FIREBASE_STORAGE_BUCKET'),
   messagingSenderId: requireEnv('VITE_FIREBASE_MESSAGING_SENDER_ID'),
   appId: requireEnv('VITE_FIREBASE_APP_ID'),
-  measurementId: import.meta.env.VITE_FIREBASE_MEASUREMENT_ID,
+  measurementId: requireEnv('VITE_FIREBASE_MEASUREMENT_ID'),
 };
 
-const firestoreDatabaseId = requireEnv('VITE_FIRESTORE_DATABASE_ID');
+function isValidFirebaseApiKey(value: string | null): value is string {
+  return Boolean(
+    value &&
+      value.startsWith('AIza') &&
+      !value.toLowerCase().includes('replace') &&
+      !value.toLowerCase().includes('your_') &&
+      value.length >= 35
+  );
+}
 
-const app = initializeApp(firebaseConfig);
+export const isFirebaseConfigured =
+  isValidFirebaseApiKey(firebaseConfig.apiKey) &&
+  Boolean(
+    firebaseConfig.authDomain &&
+      firebaseConfig.projectId &&
+      firebaseConfig.storageBucket &&
+      firebaseConfig.messagingSenderId &&
+      firebaseConfig.appId
+  );
 
-// Initialize Firestore with the specific database ID if provided, otherwise default.
-// The (default) database ID in Firebase is usually an empty string or "(default)".
-export const db = getFirestore(app, firestoreDatabaseId);
+let app: FirebaseApp | null = null;
+let db: Firestore | null = null;
+let auth: Auth | null = null;
+let googleProvider: GoogleAuthProvider | null = null;
 
-export const auth = getAuth(app);
-export const googleProvider = new GoogleAuthProvider();
+if (isFirebaseConfigured) {
+  try {
+    app = initializeApp(firebaseConfig);
+    const firestoreDatabaseId = requireEnv('VITE_FIRESTORE_DATABASE_ID');
+    db = getFirestore(app, firestoreDatabaseId || '(default)');
+    auth = getAuth(app);
+    googleProvider = new GoogleAuthProvider();
+  } catch (error) {
+    console.error('Firebase initialization error:', error);
+  }
+} else {
+  console.warn('Firebase not configured. Using demo mode.');
+}
+
+export { db, auth, googleProvider };
 
 export enum OperationType {
   CREATE = 'create',
