@@ -6,8 +6,6 @@ import {
   eachDayOfInterval, 
   isSameDay, 
   parseISO,
-  getHours,
-  startOfHour,
   setHours,
   setMinutes,
   startOfMonth,
@@ -22,7 +20,6 @@ import {
   Users,
   Repeat,
   Layers,
-  ShoppingBag,
   Hammer,
   Dog,
   ChevronLeft,
@@ -37,7 +34,6 @@ import {
   Check,
   MessageSquare,
   Settings as SettingsIcon,
-  Palette,
   CreditCard,
   Target,
   Shield,
@@ -104,9 +100,7 @@ import {
   EarningEntry, 
   Team, 
   Category,
-  SlotType, 
   Role, 
-  SlotStatus, 
   TransactionType,
   ChatMessage,
   BudgetCategory,
@@ -418,7 +412,7 @@ export default function App() {
     await confirmation.confirm(code.trim());
   };
 
-  const handleCreateProfile = async (role: Role, teamName: string, displayName: string) => {
+  const handleCreateProfile = async (_role: Role, teamName: string, displayName: string) => {
     if (!user) return;
     const teamId = teamName.toLowerCase().replace(/\s+/g, '-') + '-' + Math.random().toString(36).substr(2, 5);
     
@@ -491,18 +485,6 @@ export default function App() {
     } catch (error) {
       handleFirestoreError(error, OperationType.WRITE, `join-team/${teamId}`);
       return false;
-    }
-  };
-
-  const updateDisplayName = async (newPathName: string) => {
-    if (!profile || !user) return;
-    try {
-      await updateDoc(doc(db, 'users', user.uid), {
-        displayName: newPathName
-      });
-      setProfile({ ...profile, displayName: newPathName });
-    } catch (error) {
-      handleFirestoreError(error, OperationType.UPDATE, 'users');
     }
   };
 
@@ -640,10 +622,6 @@ export default function App() {
     .filter(e => e.type === 'earning')
     .reduce((acc, curr) => acc + curr.amount, 0);
   
-  const totalPayments = earnings
-    .filter(e => e.type === 'payment')
-    .reduce((acc, curr) => acc + curr.amount, 0);
-
   const splitPayPercent = team?.splitPayPercentage ?? 50;
   const driverTotal = totalEarnings * (splitPayPercent / 100);
   const assistantTotal = totalEarnings * (1 - splitPayPercent / 100);
@@ -1995,9 +1973,6 @@ function ChatView({ profile, teamId }: { profile: UserProfile, teamId: string })
           <div className="max-w-3xl mx-auto space-y-4">
              {messages.map((m, idx) => {
                 const isMe = m.senderId === profile.uid;
-                const nextMessage = messages[idx + 1];
-                const isLastFromUser = !nextMessage || nextMessage.senderId !== m.senderId;
-
                 return (
                   <div key={m.id} className={cn(
                     "flex flex-col group",
@@ -2120,14 +2095,11 @@ function CalendarView({
   const [slotTitle, setSlotTitle] = useState('');
   const [slotColor, setSlotColor] = useState(PRESET_COLORS[0]);
   const [slotCategory, setSlotCategory] = useState<string>('work');
-  const [slotLabel, setSlotLabel] = useState('');
   const [reminderEnabled, setReminderEnabled] = useState(false);
   const [inviteTeam, setInviteTeam] = useState(false);
   const [estimatedCost, setEstimatedCost] = useState<string>('');
   const [selectedMobileDate, setSelectedMobileDate] = useState<string>(format(new Date(), 'yyyy-MM-dd'));
   const [showCategoriesModal, setShowCategoriesModal] = useState(false);
-  const [isFabOpen, setIsFabOpen] = useState(false);
-
   // Driver-assistant request states
   const [requestType, setRequestType] = useState<'absence' | 'change'>('absence');
   const [requestNotesText, setRequestNotesText] = useState('');
@@ -2446,7 +2418,7 @@ function CalendarView({
 
       {/* Mobile Vertical Weekly agenda list */}
       <div className="md:hidden flex-1 flex flex-col gap-3 overflow-y-auto custom-scrollbar pb-24 pr-1">
-        {days.map((day, i) => {
+        {days.map((day) => {
           const dateStr = format(day, 'yyyy-MM-dd');
           const isToday = isSameDay(day, new Date());
           
@@ -2683,7 +2655,7 @@ function CalendarView({
                 </div>
 
                 {/* Slots Grid */}
-                {days.map((day, dIdx) => {
+                {days.map((day) => {
                   const dateStr = format(day, 'yyyy-MM-dd');
                   const isMobileActive = selectedMobileDate === dateStr;
                   const isDayToday = isSameDay(day, new Date());
@@ -2706,7 +2678,7 @@ function CalendarView({
                        {hours.map(hour => {
                           const slotShifts = shifts.filter(s => s.date === dateStr && s.hour === hour && !s.isAllDay);
                           const visibleShifts = filterMemberId === 'everyone' 
-                            ? slotShifts.sort((a, b) => a.userId === profile.uid ? -1 : 1)
+                            ? slotShifts.sort((a, b) => Number(b.userId === profile.uid) - Number(a.userId === profile.uid))
                             : slotShifts.filter(s => s.userId === filterMemberId);
                           
                           const hasShifts = visibleShifts.length > 0;
@@ -4258,6 +4230,7 @@ function SettingsView({ profile, team, teamMembers }: { profile: UserProfile, te
   const [saving, setSaving] = useState(false);
   const [isResetting, setIsResetting] = useState(false);
   const [activeDoc, setActiveDoc] = useState<'scheduling' | 'ledger' | 'chat' | null>(null);
+  const [teamIdCopied, setTeamIdCopied] = useState(false);
 
   useEffect(() => {
     if (team?.name) setTeamName(team.name);
@@ -4372,19 +4345,6 @@ function SettingsView({ profile, team, teamMembers }: { profile: UserProfile, te
     }
   };
 
-  const updateDeliveryMode = async (enabled: boolean) => {
-    if (profile.role !== 'leader') return;
-    try {
-      await updateDoc(doc(db, 'teams', profile.teamId), {
-        isDeliveryMode: enabled,
-        enableEarnings: enabled ? true : (team?.enableEarnings ?? true),
-        enableSplitPay: enabled ? true : (team?.enableSplitPay ?? false)
-      });
-    } catch (err) {
-      console.error(err);
-    }
-  };
-
   const updateTeamSettings = async (updates: Partial<Team>) => {
     if (profile.role !== 'leader' || !profile.teamId) return;
     try {
@@ -4462,12 +4422,8 @@ function SettingsView({ profile, team, teamMembers }: { profile: UserProfile, te
                           handleRenameTeamId();
                         } else {
                           navigator.clipboard.writeText(profile.teamId);
-                          const btn = document.activeElement as HTMLButtonElement;
-                          if (btn) {
-                            const oldText = btn.innerHTML;
-                            btn.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-check"><polyline points="20 6 9 17 4 12"></polyline></svg>';
-                            setTimeout(() => { btn.innerHTML = oldText; }, 2000);
-                          }
+                          setTeamIdCopied(true);
+                          window.setTimeout(() => setTeamIdCopied(false), 2000);
                         }
                       }}
                       className={cn(
@@ -4478,7 +4434,7 @@ function SettingsView({ profile, team, teamMembers }: { profile: UserProfile, te
                       )}
                       title={profile.role === 'leader' && newTeamId !== team?.id ? "Apply ID Change" : "Copy to clipboard"}
                     >
-                      {profile.role === 'leader' && newTeamId !== team?.id ? <Check className="w-5 h-5" /> : <CreditCard className="w-5 h-5" />}
+                      {((profile.role === 'leader' && newTeamId !== team?.id) || teamIdCopied) ? <Check className="w-5 h-5" /> : <CreditCard className="w-5 h-5" />}
                     </button>
                   </div>
                   {profile.role === 'leader' && newTeamId !== team?.id && (

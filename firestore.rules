@@ -74,6 +74,7 @@ service cloud.firestore {
 
     function isValidShift(data) {
       return data.keys().hasAll(['date', 'hour', 'type', 'status', 'userId', 'teamId', 'title', 'color', 'updatedAt']) &&
+             data.keys().hasOnly(['date', 'hour', 'minute', 'endHour', 'endMinute', 'isAllDay', 'type', 'status', 'userId', 'teamId', 'title', 'color', 'notes', 'reminderEnabled', 'inviteTeam', 'estimatedCost', 'updatedAt', 'requestType', 'requestNotes', 'requestedHours']) &&
              data.date is string && data.date.size() == 10 &&
              data.hour is int && data.hour >= 0 && data.hour < 24 &&
              (!('minute' in data) || (data.minute in [0, 15, 30, 45])) &&
@@ -90,8 +91,35 @@ service cloud.firestore {
              (!('reminderEnabled' in data) || (data.reminderEnabled is bool)) &&
              (!('inviteTeam' in data) || (data.inviteTeam is bool)) &&
              (!('estimatedCost' in data) || (data.estimatedCost is number)) &&
+             (!('requestType' in data) || data.requestType == null || data.requestType in ['absence', 'change']) &&
+             (!('requestNotes' in data) || data.requestNotes == null || (data.requestNotes is string && data.requestNotes.size() <= 1000)) &&
+             (!('requestedHours' in data) || data.requestedHours == null || (
+               data.requestedHours is map &&
+               data.requestedHours.keys().hasOnly(['hour', 'minute', 'endHour', 'endMinute']) &&
+               data.requestedHours.hour is int && data.requestedHours.hour >= 0 && data.requestedHours.hour < 24 &&
+               data.requestedHours.minute in [0, 15, 30, 45] &&
+               data.requestedHours.endHour is int && data.requestedHours.endHour >= 0 && data.requestedHours.endHour < 24 &&
+               data.requestedHours.endMinute in [0, 15, 30, 45]
+             )) &&
              data.updatedAt is timestamp &&
              isTeamMember(data.teamId);
+    }
+
+    function shiftOwnerFieldsAreStable() {
+      return incoming().userId == existing().userId &&
+             incoming().teamId == existing().teamId;
+    }
+
+    function isOwnerShiftRequest() {
+      return existing().userId == request.auth.uid &&
+             shiftOwnerFieldsAreStable() &&
+             incoming().diff(existing()).affectedKeys().hasOnly(['status', 'requestType', 'requestNotes', 'requestedHours', 'updatedAt']) &&
+             incoming().status == 'pending';
+    }
+
+    function isLeaderShiftUpdate() {
+      return isTeamLeader(existing().teamId) &&
+             shiftOwnerFieldsAreStable();
     }
 
     function isValidEarning(data) {
@@ -117,10 +145,40 @@ service cloud.firestore {
              isTeamMember(data.teamId);
     }
 
+    function isValidLocation(data) {
+      return data is map &&
+             data.keys().hasOnly(['lat', 'lng']) &&
+             data.lat is number && data.lat >= -90 && data.lat <= 90 &&
+             data.lng is number && data.lng >= -180 && data.lng <= 180;
+    }
+
+    function isValidTrip(data) {
+      return data.keys().hasAll(['userId', 'teamId', 'vehicleName', 'status', 'startTime', 'startLocation', 'distanceMiles']) &&
+             data.keys().hasOnly(['userId', 'teamId', 'vehicleName', 'status', 'startTime', 'startLocation', 'endTime', 'endLocation', 'distanceMiles']) &&
+             data.userId == request.auth.uid &&
+             isValidId(data.teamId) &&
+             data.vehicleName is string && data.vehicleName.size() <= 100 &&
+             data.status in ['active', 'completed'] &&
+             data.startTime is timestamp &&
+             isValidLocation(data.startLocation) &&
+             (!('endTime' in data) || data.endTime is timestamp) &&
+             (!('endLocation' in data) || isValidLocation(data.endLocation)) &&
+             data.distanceMiles is number && data.distanceMiles >= 0 && data.distanceMiles <= 10000 &&
+             isTeamMember(data.teamId);
+    }
+
+    function tripOwnerFieldsAreStable() {
+      return incoming().userId == existing().userId &&
+             incoming().teamId == existing().teamId &&
+             incoming().vehicleName == existing().vehicleName &&
+             incoming().startTime == existing().startTime &&
+             incoming().startLocation == existing().startLocation;
+    }
+
     // --- Match Groups ---
 
     match /users/{userId} {
-      allow get: if isSignedIn();
+      allow get: if isSignedIn() && (userId == request.auth.uid || resource.data.teamId == getProfile(request.auth.uid).teamId);
       allow list: if isSignedIn() && resource.data.teamId == getProfile(request.auth.uid).teamId;
       allow create: if isSignedIn() && userId == request.auth.uid && isValidUser(incoming());
       allow update: if isSignedIn() && (
@@ -157,13 +215,8 @@ service cloud.firestore {
         ))
       );
       allow update: if isSignedIn() && isValidShift(incoming()) && (
-        isTeamLeader(existing().teamId) ||
-        (existing().userId == request.auth.uid && (
-          // Allow self-update but enforce status pending for changes to type if not leader
-          (incoming().type == existing().type || incoming().status == 'pending')
-        )) ||
-        // Partnership/Collaborative edit: Allow members to edit team slots for coordination
-        isTeamMember(existing().teamId)
+        isLeaderShiftUpdate() ||
+        isOwnerShiftRequest()
       );
       allow delete: if isSignedIn() && (existing().userId == request.auth.uid || isTeamLeader(existing().teamId));
     }
@@ -184,8 +237,14 @@ service cloud.firestore {
 
     match /trips/{tripId} {
       allow read: if isSignedIn() && resource.data.teamId == getProfile(request.auth.uid).teamId;
-      allow create: if isSignedIn() && isTeamMember(incoming().teamId) && incoming().userId == request.auth.uid;
-      allow update: if isSignedIn() && resource.data.userId == request.auth.uid;
+      allow create: if isSignedIn() && isValidTrip(incoming()) && incoming().status == 'active' && incoming().distanceMiles == 0;
+      allow update: if isSignedIn() &&
+                    existing().userId == request.auth.uid &&
+                    existing().status == 'active' &&
+                    isValidTrip(incoming()) &&
+                    tripOwnerFieldsAreStable() &&
+                    incoming().status == 'completed' &&
+                    incoming().diff(existing()).affectedKeys().hasOnly(['status', 'endTime', 'endLocation', 'distanceMiles']);
       allow delete: if false;
     }
   }
