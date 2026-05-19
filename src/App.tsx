@@ -503,12 +503,12 @@ export default function App() {
             <p className="text-[10px] font-bold text-rose-700 uppercase tracking-widest mb-2">Quick Setup:</p>
             <ol className="text-xs text-rose-600 space-y-1 list-decimal list-inside">
               <li>Copy <code className="font-mono bg-rose-100 px-1">.env.example</code> to <code className="font-mono bg-rose-100 px-1">.env.local</code></li>
-              <li>Add your Firebase credentials</li>
-              <li>Reload the page</li>
+              <li>Add the Firebase web config as <code className="font-mono bg-rose-100 px-1">VITE_*</code> values</li>
+              <li>Restart the dev server or rebuild and redeploy</li>
             </ol>
             <div className="mt-3 text-xs text-rose-700">
-              <p className="mb-2">Netlify notes:</p>
-              <ul className="list-disc list-inside">
+              <p className="mb-2">Deploy notes:</p>
+              <ul className="list-disc list-inside space-y-1">
                 <li>Add the same `VITE_*` environment variables in your Netlify Site settings (Build & deploy → Environment).</li>
                 <li>In Firebase Console → Authentication → Authorized domains, add your Netlify domain (example: <code className="font-mono">your-site.netlify.app</code>) or custom domain.</li>
               </ul>

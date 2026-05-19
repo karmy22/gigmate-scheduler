@@ -27,40 +27,38 @@ const firebaseConfig: FirebaseOptions = {
   measurementId: requireEnv('VITE_FIREBASE_MEASUREMENT_ID'),
 };
 
-function isValidFirebaseApiKey(value: string | undefined): value is string {
-  return Boolean(
-    value &&
-      value.startsWith('AIza') &&
-      !value.toLowerCase().includes('replace') &&
-      !value.toLowerCase().includes('your_') &&
-      value.length >= 35
+const firebaseEnvRequirements = [
+  ['VITE_FIREBASE_API_KEY', firebaseConfig.apiKey, (value: string) => value.startsWith('AIza') && value.length >= 35],
+  ['VITE_FIREBASE_AUTH_DOMAIN', firebaseConfig.authDomain],
+  ['VITE_FIREBASE_PROJECT_ID', firebaseConfig.projectId],
+  ['VITE_FIREBASE_STORAGE_BUCKET', firebaseConfig.storageBucket],
+  ['VITE_FIREBASE_MESSAGING_SENDER_ID', firebaseConfig.messagingSenderId],
+  ['VITE_FIREBASE_APP_ID', firebaseConfig.appId],
+] as const;
+
+function isPlaceholder(value: string): boolean {
+  const normalized = value.toLowerCase();
+  return (
+    normalized.includes('paste_') ||
+    normalized.includes('your-') ||
+    normalized.includes('your_') ||
+    normalized.includes('replace') ||
+    normalized.includes('1234567890') ||
+    normalized.includes('abcdef')
   );
 }
 
+function isUsableEnvValue(value: string | undefined, validator?: (value: string) => boolean): value is string {
+  return Boolean(value && !isPlaceholder(value) && (!validator || validator(value)));
+}
+
 export const isFirebaseConfigured =
-  isValidFirebaseApiKey(firebaseConfig.apiKey) &&
-  Boolean(
-    firebaseConfig.authDomain &&
-      firebaseConfig.projectId &&
-      firebaseConfig.storageBucket &&
-      firebaseConfig.messagingSenderId &&
-      firebaseConfig.appId
-  );
+  firebaseEnvRequirements.every(([, value, validator]) => isUsableEnvValue(value, validator));
 
 export function getMissingFirebaseEnv(): string[] {
-  const required: Array<keyof typeof firebaseConfig> = [
-    'apiKey',
-    'authDomain',
-    'projectId',
-    'storageBucket',
-    'messagingSenderId',
-    'appId'
-  ];
   const missing: string[] = [];
-  required.forEach(k => {
-    const v = firebaseConfig[k];
-    if (!v) missing.push(k);
-    if (k === 'apiKey' && !isValidFirebaseApiKey(v)) missing.push('apiKey (invalid)');
+  firebaseEnvRequirements.forEach(([name, value, validator]) => {
+    if (!isUsableEnvValue(value, validator)) missing.push(name);
   });
   return missing;
 }
