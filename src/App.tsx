@@ -261,6 +261,11 @@ export default function App() {
 
   // Auth Listener
   useEffect(() => {
+    if (!isFirebaseConfigured) {
+      setLoading(false);
+      return;
+    }
+
     return onAuthStateChanged(auth, async (u) => {
       setUser(u);
       try {

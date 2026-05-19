@@ -1,5 +1,5 @@
 import { initializeApp } from 'firebase/app';
-import type { FirebaseApp } from 'firebase/app';
+import type { FirebaseApp, FirebaseOptions } from 'firebase/app';
 import { getAuth, GoogleAuthProvider } from 'firebase/auth';
 import type { Auth } from 'firebase/auth';
 import { getFirestore } from 'firebase/firestore';
@@ -12,12 +12,12 @@ export class FirebaseConfigError extends Error {
   }
 }
 
-function requireEnv(name: keyof ImportMetaEnv): string | null {
+function requireEnv(name: keyof ImportMetaEnv): string | undefined {
   const value = import.meta.env[name];
-  return value || null;
+  return value || undefined;
 }
 
-const firebaseConfig = {
+const firebaseConfig: FirebaseOptions = {
   apiKey: requireEnv('VITE_FIREBASE_API_KEY'),
   authDomain: requireEnv('VITE_FIREBASE_AUTH_DOMAIN'),
   projectId: requireEnv('VITE_FIREBASE_PROJECT_ID'),
@@ -27,7 +27,7 @@ const firebaseConfig = {
   measurementId: requireEnv('VITE_FIREBASE_MEASUREMENT_ID'),
 };
 
-function isValidFirebaseApiKey(value: string | null): value is string {
+function isValidFirebaseApiKey(value: string | undefined): value is string {
   return Boolean(
     value &&
       value.startsWith('AIza') &&
@@ -65,17 +65,17 @@ export function getMissingFirebaseEnv(): string[] {
   return missing;
 }
 
-let app: FirebaseApp | null = null;
-let db: Firestore | null = null;
-let auth: Auth | null = null;
+let appInstance: FirebaseApp | null = null;
+let dbInstance: Firestore | null = null;
+let authInstance: Auth | null = null;
 let googleProvider: GoogleAuthProvider | null = null;
 
 if (isFirebaseConfigured) {
   try {
-    app = initializeApp(firebaseConfig);
+    appInstance = initializeApp(firebaseConfig);
     const firestoreDatabaseId = requireEnv('VITE_FIRESTORE_DATABASE_ID');
-    db = getFirestore(app, firestoreDatabaseId || '(default)');
-    auth = getAuth(app);
+    dbInstance = getFirestore(appInstance, firestoreDatabaseId || '(default)');
+    authInstance = getAuth(appInstance);
     googleProvider = new GoogleAuthProvider();
   } catch (error) {
     console.error('Firebase initialization error:', error);
@@ -84,7 +84,9 @@ if (isFirebaseConfigured) {
   console.warn('Firebase not configured. Using demo mode.');
 }
 
-export { db, auth, googleProvider };
+export const db = dbInstance as Firestore;
+export const auth = authInstance as Auth;
+export { googleProvider };
 
 export enum OperationType {
   CREATE = 'create',
@@ -116,12 +118,12 @@ export function handleFirestoreError(error: unknown, operationType: OperationTyp
   const errInfo: FirestoreErrorInfo = {
     error: error instanceof Error ? error.message : String(error),
     authInfo: {
-      userId: auth?.currentUser?.uid,
-      email: auth?.currentUser?.email,
-      emailVerified: auth?.currentUser?.emailVerified,
-      isAnonymous: auth?.currentUser?.isAnonymous,
-      tenantId: auth?.currentUser?.tenantId,
-      providerInfo: auth?.currentUser?.providerData?.map(provider => ({
+      userId: authInstance?.currentUser?.uid,
+      email: authInstance?.currentUser?.email,
+      emailVerified: authInstance?.currentUser?.emailVerified,
+      isAnonymous: authInstance?.currentUser?.isAnonymous,
+      tenantId: authInstance?.currentUser?.tenantId,
+      providerInfo: authInstance?.currentUser?.providerData?.map(provider => ({
         providerId: provider.providerId,
         email: provider.email,
       })) || []
