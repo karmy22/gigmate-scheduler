@@ -1,0 +1,6 @@
+{
+  "name": "Remix: GigMate Scheduler",
+  "description": "A collaborative scheduling and earnings split app for gig economy teams. Track hourly availability, schedule services like DoorDash and Instacart, and manage income splits between drivers and assistants.",
+  "requestFramePermissions": [],
+  "majorCapabilities": []
+}

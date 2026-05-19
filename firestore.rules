@@ -1,0 +1,192 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // 0. Global Safety Net
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    // --- Helpers ---
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isEmailVerified() {
+      return request.auth.token.email_verified == true;
+    }
+
+    function isValidId(id) {
+      return id is string && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
+    }
+
+    function incoming() {
+      return request.resource.data;
+    }
+
+    function existing() {
+      return resource.data;
+    }
+
+    function getProfile(userId) {
+      return get(/databases/$(database)/documents/users/$(userId)).data;
+    }
+
+    function isTeamMember(teamId) {
+      return isSignedIn() && getProfile(request.auth.uid).teamId == teamId;
+    }
+
+    function isTeamLeader(teamId) {
+      return isSignedIn() && 
+             getProfile(request.auth.uid).teamId == teamId && 
+             getProfile(request.auth.uid).role == 'leader';
+    }
+
+    // --- Validation Blueprints ---
+
+    function isValidUserForDoc(data, userId) {
+      return data.keys().hasAll(['email', 'displayName', 'role', 'teamId', 'uid']) &&
+             data.email is string && data.email.size() <= 200 &&
+             data.displayName is string && data.displayName.size() <= 100 &&
+             data.role in ['leader', 'member'] &&
+             (data.teamId == '' || isValidId(data.teamId)) &&
+             (!('colorPreference' in data) || (data.colorPreference is string && data.colorPreference.size() <= 20)) &&
+             data.uid == userId;
+    }
+
+    function isValidUser(data) {
+      return isValidUserForDoc(data, request.auth.uid);
+    }
+
+    function isValidTeam(data) {
+      return data.keys().hasAll(['name', 'leaderId', 'createdAt', 'members', 'categories']) &&
+             data.name is string && data.name.size() <= 100 &&
+             isValidId(data.leaderId) &&
+             (!('enableSplitPay' in data) || (data.enableSplitPay is bool)) &&
+             (!('splitPayPercentage' in data) || (data.splitPayPercentage is int && data.splitPayPercentage >= 0 && data.splitPayPercentage <= 100)) &&
+             (!('enableEarnings' in data) || (data.enableEarnings is bool)) &&
+             (!('enableDeliveryGig' in data) || (data.enableDeliveryGig is bool)) &&
+             (!('enableHomeServices' in data) || (data.enableHomeServices is bool)) &&
+             (!('enableCareServices' in data) || (data.enableCareServices is bool)) &&
+             data.members is list &&
+             data.categories is list &&
+             data.createdAt is timestamp;
+    }
+
+    function isValidShift(data) {
+      return data.keys().hasAll(['date', 'hour', 'type', 'status', 'userId', 'teamId', 'title', 'color', 'updatedAt']) &&
+             data.date is string && data.date.size() == 10 &&
+             data.hour is int && data.hour >= 0 && data.hour < 24 &&
+             (!('minute' in data) || (data.minute in [0, 15, 30, 45])) &&
+             (!('endHour' in data) || (data.endHour is int && data.endHour >= 0 && data.endHour < 24)) &&
+             (!('endMinute' in data) || (data.endMinute in [0, 15, 30, 45])) &&
+             (!('isAllDay' in data) || (data.isAllDay is bool)) &&
+             data.type is string &&
+             data.status in ['confirmed', 'pending'] &&
+             data.userId is string &&
+             isValidId(data.teamId) &&
+             data.title is string && data.title.size() <= 200 &&
+             data.color is string && data.color.size() <= 20 &&
+             (!('notes' in data) || (data.notes is string && data.notes.size() <= 2000)) &&
+             (!('reminderEnabled' in data) || (data.reminderEnabled is bool)) &&
+             (!('inviteTeam' in data) || (data.inviteTeam is bool)) &&
+             (!('estimatedCost' in data) || (data.estimatedCost is number)) &&
+             data.updatedAt is timestamp &&
+             isTeamMember(data.teamId);
+    }
+
+    function isValidEarning(data) {
+      return data.keys().hasAll(['amount', 'type', 'date', 'userId', 'teamId', 'category', 'createdAt']) &&
+             data.amount is number && data.amount >= 0 &&
+             data.type in ['earning', 'payment'] &&
+             data.date is string && data.date.size() == 10 &&
+             data.userId == request.auth.uid &&
+             data.category is string &&
+             (!('splitPercentage' in data) || (data.splitPercentage is number && data.splitPercentage >= 0 && data.splitPercentage <= 100)) &&
+             (!('driverPay' in data) || (data.driverPay is number)) &&
+             (!('assistantPay' in data) || (data.assistantPay is number)) &&
+             data.createdAt is timestamp &&
+             isTeamMember(data.teamId);
+    }
+
+    function isValidMessage(data) {
+      return data.keys().hasAll(['text', 'senderId', 'senderName', 'teamId', 'createdAt']) &&
+             data.text is string && data.text.size() <= 1000 &&
+             data.senderId == request.auth.uid &&
+             data.senderName is string &&
+             data.createdAt is timestamp &&
+             isTeamMember(data.teamId);
+    }
+
+    // --- Match Groups ---
+
+    match /users/{userId} {
+      allow get: if isSignedIn();
+      allow list: if isSignedIn() && resource.data.teamId == getProfile(request.auth.uid).teamId;
+      allow create: if isSignedIn() && userId == request.auth.uid && isValidUser(incoming());
+      allow update: if isSignedIn() && (
+        (
+          userId == request.auth.uid &&
+          incoming().diff(existing()).affectedKeys().hasOnly(['displayName', 'teamId', 'role', 'colorPreference']) &&
+          isValidUser(incoming())
+        ) ||
+        (
+          isTeamLeader(existing().teamId) &&
+          incoming().diff(existing()).affectedKeys().hasOnly(['displayName', 'teamId', 'role', 'colorPreference']) &&
+          (incoming().teamId == existing().teamId || incoming().teamId == '') &&
+          isValidUserForDoc(incoming(), userId)
+        )
+      );
+    }
+
+    match /teams/{teamId} {
+      allow get: if isSignedIn();
+      allow create: if isSignedIn() && isEmailVerified() && isValidTeam(incoming());
+      allow update: if isSignedIn() && (
+        (isTeamLeader(teamId) && incoming().diff(existing()).affectedKeys().hasOnly(['name', 'categories', 'members', 'enableSplitPay', 'splitPayPercentage', 'enableEarnings', 'enableDeliveryGig', 'enableHomeServices', 'enableCareServices']) && isValidTeam(incoming())) ||
+        (incoming().diff(existing()).affectedKeys().hasOnly(['members']) && incoming().members.hasAll(existing().members) && incoming().members.size() == existing().members.size() + 1 && incoming().members.hasAny([request.auth.uid]) && getProfile(request.auth.uid).teamId == teamId)
+      );
+    }
+
+    match /shifts/{shiftId} {
+      allow read: if isSignedIn() && isTeamMember(resource.data.teamId);
+      allow create: if isSignedIn() && isValidShift(incoming()) && (
+        isTeamLeader(incoming().teamId) || 
+        (incoming().userId == request.auth.uid && (
+          // If personal/medical/etc, must be pending unless created by leader
+          (incoming().type == 'Work' || incoming().type == 'scheduled' || incoming().status == 'pending')
+        ))
+      );
+      allow update: if isSignedIn() && isValidShift(incoming()) && (
+        isTeamLeader(existing().teamId) ||
+        (existing().userId == request.auth.uid && (
+          // Allow self-update but enforce status pending for changes to type if not leader
+          (incoming().type == existing().type || incoming().status == 'pending')
+        )) ||
+        // Partnership/Collaborative edit: Allow members to edit team slots for coordination
+        isTeamMember(existing().teamId)
+      );
+      allow delete: if isSignedIn() && (existing().userId == request.auth.uid || isTeamLeader(existing().teamId));
+    }
+
+    match /earnings/{earningId} {
+      allow read: if isSignedIn() && resource.data.teamId == getProfile(request.auth.uid).teamId;
+      allow create: if isSignedIn() && isValidEarning(incoming());
+      allow update: if isSignedIn() && existing().userId == request.auth.uid && isValidEarning(incoming());
+      allow delete: if isSignedIn() && existing().userId == request.auth.uid;
+    }
+
+    match /messages/{messageId} {
+      allow read: if isSignedIn() && resource.data.teamId == getProfile(request.auth.uid).teamId;
+      allow create: if isSignedIn() && isValidMessage(incoming());
+      // Messages are generally immutable in this app
+      allow delete: if isSignedIn() && (existing().userId == request.auth.uid || isTeamLeader(existing().teamId));
+    }
+
+    match /trips/{tripId} {
+      allow read: if isSignedIn() && resource.data.teamId == getProfile(request.auth.uid).teamId;
+      allow create: if isSignedIn() && isTeamMember(incoming().teamId) && incoming().userId == request.auth.uid;
+      allow update: if isSignedIn() && resource.data.userId == request.auth.uid;
+      allow delete: if false;
+    }
+  }
+}

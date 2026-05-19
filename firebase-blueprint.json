@@ -1,0 +1,160 @@
+{
+  "entities": {
+    "User": {
+      "title": "User Profile",
+      "description": "User information including their role in the workspace.",
+      "type": "object",
+      "properties": {
+        "email": { "type": "string", "format": "email" },
+        "displayName": { "type": "string" },
+        "role": { "type": "string", "enum": ["leader", "member"] },
+        "teamId": { "type": "string" },
+        "uid": { "type": "string" }
+      },
+      "required": ["email", "role", "teamId", "uid"]
+    },
+    "ShiftSlot": {
+      "title": "Shift Slot",
+      "description": "Calendar availability or scheduled work.",
+      "type": "object",
+      "properties": {
+        "date": { "type": "string", "format": "date" },
+        "hour": { "type": "integer" },
+        "minute": { "type": "integer", "enum": [0, 15, 30, 45] },
+        "endHour": { "type": "integer" },
+        "endMinute": { "type": "integer", "enum": [0, 15, 30, 45] },
+        "isAllDay": { "type": "boolean" },
+        "type": { "type": "string" },
+        "title": { "type": "string" },
+        "color": { "type": "string" },
+        "notes": { "type": "string" },
+        "status": { "type": "string", "enum": ["confirmed", "pending"] },
+        "reminderEnabled": { "type": "boolean" },
+        "inviteTeam": { "type": "boolean" },
+        "estimatedCost": { "type": "number" },
+        "userId": { "type": "string" },
+        "teamId": { "type": "string" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["date", "hour", "minute", "type", "title", "color", "userId", "teamId", "status"]
+    },
+    "EarningEntry": {
+      "title": "Finance Entry",
+      "description": "Record of earnings or payments in the ledger.",
+      "type": "object",
+      "properties": {
+        "amount": { "type": "number" },
+        "category": { "type": "string" },
+        "type": { "type": "string", "enum": ["earning", "payment"] },
+        "splitPercentage": { "type": "number" },
+        "driverPay": { "type": "number" },
+        "assistantPay": { "type": "number" },
+        "date": { "type": "string", "format": "date" },
+        "userId": { "type": "string" },
+        "teamId": { "type": "string" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["amount", "type", "date", "teamId", "userId"]
+    },
+    "Category": {
+      "title": "Shift Category",
+      "description": "Customizable category for shifts.",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "label": { "type": "string" },
+        "color": { "type": "string" }
+      },
+      "required": ["id", "label", "color"]
+    },
+    "Team": {
+      "title": "Workspace Team",
+      "description": "A collaborative workspace group.",
+      "type": "object",
+      "properties": {
+        "name": { "type": "string" },
+        "leaderId": { "type": "string" },
+        "enableSplitPay": { "type": "boolean" },
+        "splitPayPercentage": { "type": "integer" },
+        "enableEarnings": { "type": "boolean" },
+        "enableDeliveryGig": { "type": "boolean" },
+        "enableHomeServices": { "type": "boolean" },
+        "enableCareServices": { "type": "boolean" },
+        "categories": { 
+          "type": "array",
+          "items": { "$ref": "Category" }
+        },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["name", "leaderId"]
+    },
+    "ChatMessage": {
+      "title": "Chat Message",
+      "description": "Real-time message in the team chat.",
+      "type": "object",
+      "properties": {
+        "text": { "type": "string" },
+        "senderId": { "type": "string" },
+        "senderName": { "type": "string" },
+        "teamId": { "type": "string" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["text", "senderId", "senderName", "teamId", "createdAt"]
+    },
+    "Trip": {
+      "title": "Vehicle Trip",
+      "description": "Logged mileage trip",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string" },
+        "teamId": { "type": "string" },
+        "vehicleName": { "type": "string" },
+        "startLocation": {
+          "type": "object",
+          "properties": {
+            "lat": { "type": "number" },
+            "lng": { "type": "number" }
+          }
+        },
+        "endLocation": {
+          "type": "object",
+          "properties": {
+            "lat": { "type": "number" },
+            "lng": { "type": "number" }
+          }
+        },
+        "distanceMiles": { "type": "number" },
+        "status": { "type": "string", "enum": ["active", "completed"] },
+        "startTime": { "type": "string", "format": "date-time" },
+        "endTime": { "type": "string", "format": "date-time" }
+      },
+      "required": ["userId", "teamId", "vehicleName", "startLocation", "startTime", "status"]
+    }
+  },
+  "firestore": {
+    "/trips/{tripId}": {
+      "schema": "Trip",
+      "description": "Collection of vehicle trips"
+    },
+    "/users/{userId}": {
+      "schema": "User",
+      "description": "User profile data."
+    },
+    "/teams/{teamId}": {
+      "schema": "Team",
+      "description": "Team workspace configuration."
+    },
+    "/shifts/{shiftId}": {
+      "schema": "ShiftSlot",
+      "description": "Work and availability slots."
+    },
+    "/earnings/{earningId}": {
+      "schema": "EarningEntry",
+      "description": "Financial records (earnings and payments)."
+    },
+    "/messages/{messageId}": {
+      "schema": "ChatMessage",
+      "description": "Team chat communications."
+    }
+  }
+}

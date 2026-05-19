@@ -1,0 +1,103 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // 0. Global Safety Net
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    // --- Helpers ---
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isEmailVerified() {
+      // In development/preview, we might relax this if the user hasn't verified, 
+      // but the constraint says MUST mandate.
+      return request.auth.token.email_verified == true;
+    }
+
+    function isValidId(id) {
+      return id is string && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
+    }
+
+    function incoming() {
+      return request.resource.data;
+    }
+
+    function existing() {
+      return resource.data;
+    }
+
+    function currentUserData() {
+      return get(/databases/$(database)/documents/users/$(request.auth.uid)).data;
+    }
+
+    // --- Entity Validations ---
+
+    function isValidUser(data) {
+      return data.keys().hasAll(['email', 'role', 'teamId']) &&
+             data.keys().size() <= 6 &&
+             data.email is string && data.email.size() <= 200 &&
+             data.role in ['driver', 'assistant'] &&
+             data.teamId is string && data.teamId.size() <= 128;
+    }
+
+    function isValidShiftSlot(data) {
+      return data.keys().hasAll(['date', 'hour', 'type', 'userId', 'teamId']) &&
+             data.date is string && data.date.size() == 10 &&
+             data.hour is int && data.hour >= 0 && data.hour < 24 &&
+             data.type in ['free', 'medical', 'personal', 'cant-work', 'scheduled'] &&
+             data.userId == request.auth.uid &&
+             // Relational check: must match user's team
+             data.teamId == currentUserData().teamId;
+    }
+
+    function isValidEarningEntry(data) {
+      return data.keys().hasAll(['date', 'amount', 'platform', 'splitPercentage', 'teamId', 'userId']) &&
+             data.amount is number && data.amount >= 0 &&
+             data.splitPercentage is number && data.splitPercentage >= 0 && data.splitPercentage <= 100 &&
+             data.teamId == currentUserData().teamId &&
+             data.userId == request.auth.uid;
+    }
+
+    // --- Match Blocks ---
+
+    match /users/{userId} {
+      allow get: if isSignedIn();
+      allow list: if isSignedIn() && resource.data.teamId == currentUserData().teamId;
+      allow create: if isSignedIn() && userId == request.auth.uid && isValidUser(incoming());
+      allow update: if isSignedIn() && userId == request.auth.uid && 
+                   incoming().diff(existing()).affectedKeys().hasOnly(['displayName', 'photoURL', 'role', 'teamId']) &&
+                   isValidUser(incoming());
+    }
+
+    match /teams/{teamId} {
+      allow get: if isSignedIn() && (existing().driverId == request.auth.uid || existing().assistantId == request.auth.uid);
+      allow create: if isSignedIn() && isEmailVerified();
+      allow update: if isSignedIn() && isEmailVerified() && 
+                   (existing().driverId == request.auth.uid || existing().assistantId == request.auth.uid) &&
+                   incoming().diff(existing()).affectedKeys().hasOnly(['assistantId', 'driverId', 'name']);
+    }
+
+    match /shifts/{shiftId} {
+      allow read: if isSignedIn() && resource.data.teamId == currentUserData().teamId;
+      allow create: if isSignedIn() && isEmailVerified() && isValidShiftSlot(incoming());
+      allow update: if isSignedIn() && isEmailVerified() && 
+                   existing().userId == request.auth.uid &&
+                   isValidShiftSlot(incoming()) &&
+                   incoming().diff(existing()).affectedKeys().hasOnly(['type', 'platform', 'location', 'updatedAt']);
+      allow delete: if isSignedIn() && existing().userId == request.auth.uid;
+    }
+
+    match /earnings/{earningId} {
+      allow read: if isSignedIn() && resource.data.teamId == currentUserData().teamId;
+      allow create: if isSignedIn() && isEmailVerified() && isValidEarningEntry(incoming());
+      allow update: if isSignedIn() && isEmailVerified() && 
+                   existing().userId == request.auth.uid &&
+                   isValidEarningEntry(incoming()) &&
+                   incoming().diff(existing()).affectedKeys().hasOnly(['amount', 'platform', 'splitPercentage', 'driverPay', 'assistantPay']);
+      allow delete: if isSignedIn() && existing().userId == request.auth.uid;
+    }
+  }
+}
