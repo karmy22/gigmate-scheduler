@@ -57,7 +57,7 @@ After deployment, verify installability with Chrome DevTools Lighthouse and the 
    - `netlify.toml` is already configured.
    - Build command: `npm run build`.
    - Publish directory: `dist`.
-   - Add the `VITE_FIREBASE_*` and `VITE_FIRESTORE_DATABASE_ID` values from `.env.example` in Site configuration > Environment variables.
+   - Add the `VITE_FIREBASE_*` and `VITE_FIRESTORE_DATABASE_ID` values from Firebase in Site configuration > Environment variables. `.env.example` only contains placeholder names.
 
    Vercel:
    - `vercel.json` is already configured.
