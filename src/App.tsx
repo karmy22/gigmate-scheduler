@@ -71,6 +71,7 @@ import {
 import { 
   onAuthStateChanged, 
   signInWithPopup, 
+  signInWithRedirect,
   signOut,
   User as FirebaseUser
 } from "firebase/auth";
@@ -84,10 +85,10 @@ import {
   Tooltip, 
   ResponsiveContainer 
 } from "recharts";
-import { clsx, type ClassValue } from "clsx";
+import clsx, { type ClassValue } from "clsx";
 import { twMerge } from "tailwind-merge";
 
-import { auth, db, googleProvider, handleFirestoreError, OperationType, isFirebaseConfigured } from "./lib/firebase";
+import { auth, db, googleProvider, handleFirestoreError, OperationType, isFirebaseConfigured, getMissingFirebaseEnv } from "./lib/firebase";
 import { 
   UserProfile, 
   ShiftSlot, 
@@ -108,7 +109,7 @@ type View = 'schedule' | 'earnings' | 'settings' | 'chat' | 'mileage' | 'calenda
 
 // --- Utility ---
 function cn(...inputs: ClassValue[]) {
-  return twMerge(clsx(inputs));
+  return twMerge(clsx(...inputs));
 }
 
 // --- Components ---
@@ -351,19 +352,34 @@ export default function App() {
     try {
       await signInWithPopup(auth, googleProvider);
     } catch (err: any) {
-      // Provide clearer feedback for common Firebase auth errors
       console.error('Sign-in error', err);
-      const code = err?.code || err?.message || 'unknown_error';
+      const code = (err && (err.code || err.message)) ? String(err.code || err.message) : 'unknown_error';
       const message = err?.message || String(err);
-      if (code.includes('auth/unauthorized-domain')) {
-        alert('Sign-in failed: unauthorized domain. Add your site to Firebase Auth authorized domains.');
-      } else if (code.includes('auth/popup-blocked') || code.includes('auth/popup-closed-by-user')) {
-        alert('Sign-in interrupted: popup blocked or closed. Please allow popups and try again.');
-      } else if (code.includes('auth/operation-not-supported-in-this-environment')) {
-        alert('Sign-in not supported in this environment. Try running in a normal browser window.');
-      } else {
-        alert('Sign-in failed: ' + message);
+
+      // If popup is blocked or operation isn't supported, fallback to redirect flow
+      if (code.includes('auth/operation-not-supported') || code.includes('operation-not-supported') || code.includes('auth/operation-not-supported-in-this-environment')) {
+        try {
+          alert('Popups not supported. Redirecting for sign-in...');
+          await signInWithRedirect(auth, googleProvider);
+          return;
+        } catch (redirectErr) {
+          console.error('Redirect sign-in failed', redirectErr);
+          alert('Sign-in failed: ' + (redirectErr?.message || String(redirectErr)));
+          return;
+        }
       }
+
+      if (code.includes('auth/unauthorized-domain')) {
+        alert('Sign-in failed: unauthorized domain. Add your site to Firebase Auth authorized domains (Firebase Console → Authentication → Authorized domains).');
+        return;
+      }
+
+      if (code.includes('auth/popup-blocked') || code.includes('auth/popup-closed-by-user')) {
+        alert('Sign-in interrupted: popup blocked or closed. Please allow popups and try again.');
+        return;
+      }
+
+      alert('Sign-in failed: ' + message);
     }
   };
 
@@ -473,6 +489,22 @@ export default function App() {
               <li>Add your Firebase credentials</li>
               <li>Reload the page</li>
             </ol>
+            <div className="mt-3 text-xs text-rose-700">
+              <p className="mb-2">Netlify notes:</p>
+              <ul className="list-disc list-inside">
+                <li>Add the same `VITE_*` environment variables in your Netlify Site settings (Build & deploy → Environment).</li>
+                <li>In Firebase Console → Authentication → Authorized domains, add your Netlify domain (example: <code className="font-mono">your-site.netlify.app</code>) or custom domain.</li>
+              </ul>
+              <button
+                onClick={() => {
+                  const missing = getMissingFirebaseEnv();
+                  alert(missing.length ? 'Missing vars: ' + missing.join(', ') : 'All required VITE_ vars present (client-side check).');
+                }}
+                className="mt-3 w-full bg-rose-600 text-white rounded-2xl py-2 px-3 font-bold hover:bg-rose-700 transition-all"
+              >
+                Show missing vars
+              </button>
+            </div>
           </div>
           <p className="text-[10px] text-slate-400 text-center uppercase tracking-widest mb-4">Or use demo mode below:</p>
           <button
@@ -723,6 +755,8 @@ export default function App() {
             <button 
               onClick={() => signOut(auth)}
               className="w-8 h-8 rounded-full flex items-center justify-center text-slate-400 hover:text-rose-600 transition-colors"
+              title="Sign out"
+              aria-label="Sign out"
             >
               <LogOut className="w-4 h-4" />
             </button>
@@ -802,6 +836,8 @@ export default function App() {
               
               <button 
                 onClick={() => setIsFabOpen(!isFabOpen)}
+                title={isFabOpen ? 'Close actions' : 'Open actions'}
+                aria-label={isFabOpen ? 'Close actions' : 'Open actions'}
                 className={cn(
                   "w-16 h-16 rounded-full bg-indigo-600 shadow-xl flex flex-col items-center justify-center transition-all border-4 border-white active:scale-90",
                   isFabOpen ? "rotate-45 bg-slate-800" : "bg-indigo-600"
@@ -1685,7 +1721,7 @@ function ChatView({ profile, teamId }: { profile: UserProfile, teamId: string })
              </div>
           </div>
           <div className="flex items-center gap-2">
-             <button className="p-2 text-slate-400 hover:text-indigo-600 transition-colors"><SettingsIcon className="w-5 h-5" /></button>
+             <button title="Chat settings" aria-label="Chat settings" className="p-2 text-slate-400 hover:text-indigo-600 transition-colors"><SettingsIcon className="w-5 h-5" /></button>
           </div>
        </div>
 
@@ -1734,7 +1770,7 @@ function ChatView({ profile, teamId }: { profile: UserProfile, teamId: string })
             onSubmit={sendMessage} 
             className="max-w-3xl mx-auto flex items-center gap-3 bg-slate-100 p-1 rounded-2xl border border-slate-200 focus-within:border-indigo-400 focus-within:bg-white transition-all shadow-inner"
           >
-             <button type="button" className="p-3 text-slate-400 hover:text-indigo-600"><Plus className="w-5 h-5" /></button>
+             <button type="button" title="Attach files" aria-label="Attach files" className="p-3 text-slate-400 hover:text-indigo-600"><Plus className="w-5 h-5" /></button>
              <input 
                 value={input}
                 onChange={e => setInput(e.target.value)}
@@ -2092,12 +2128,12 @@ function CalendarView({
           </h2>
           <div className="flex items-center gap-3">
             <div className="flex bg-slate-200/50 p-1 rounded-full border border-slate-200 scale-90 sm:scale-100 origin-left">
-              <button onClick={() => setCurrentWeekStart(addDays(currentWeekStart, -7))} className="p-2 hover:bg-white rounded-full transition-all text-slate-500"><ChevronLeft className="w-4 h-4" /></button>
+              <button onClick={() => setCurrentWeekStart(addDays(currentWeekStart, -7))} title="Previous week" aria-label="Previous week" className="p-2 hover:bg-white rounded-full transition-all text-slate-500"><ChevronLeft className="w-4 h-4" /></button>
               <button onClick={() => {
                 setCurrentWeekStart(startOfWeek(new Date()));
                 setSelectedMobileDate(format(new Date(), 'yyyy-MM-dd'));
               }} className="px-3 md:px-4 py-1 text-[10px] font-bold uppercase tracking-widest text-slate-600 hover:text-indigo-600 transition-all">Today</button>
-              <button onClick={() => setCurrentWeekStart(addDays(currentWeekStart, 7))} className="p-2 hover:bg-white rounded-full transition-all text-slate-500"><ChevronRight className="w-4 h-4" /></button>
+              <button onClick={() => setCurrentWeekStart(addDays(currentWeekStart, 7))} title="Next week" aria-label="Next week" className="p-2 hover:bg-white rounded-full transition-all text-slate-500"><ChevronRight className="w-4 h-4" /></button>
             </div>
 
             {/* Calendar Mode Selector (Collapsible Full-Week / 2-Week / Month menu) */}

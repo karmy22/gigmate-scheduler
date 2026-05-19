@@ -47,6 +47,24 @@ export const isFirebaseConfigured =
       firebaseConfig.appId
   );
 
+export function getMissingFirebaseEnv(): string[] {
+  const required: Array<keyof typeof firebaseConfig> = [
+    'apiKey',
+    'authDomain',
+    'projectId',
+    'storageBucket',
+    'messagingSenderId',
+    'appId'
+  ];
+  const missing: string[] = [];
+  required.forEach(k => {
+    const v = firebaseConfig[k];
+    if (!v) missing.push(k);
+    if (k === 'apiKey' && !isValidFirebaseApiKey(v)) missing.push('apiKey (invalid)');
+  });
+  return missing;
+}
+
 let app: FirebaseApp | null = null;
 let db: Firestore | null = null;
 let auth: Auth | null = null;
