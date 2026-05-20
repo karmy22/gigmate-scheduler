@@ -582,7 +582,7 @@ export default function App() {
                 setLoading(false);
               }, 500);
             }}
-            className="w-full bg-indigo-600 text-white rounded-2xl py-3 px-4 font-bold hover:bg-indigo-700 transition-all active:scale-95 shadow-lg"
+            className="w-full bg-green-600 text-white rounded-2xl py-3 px-4 font-bold hover:bg-green-700 transition-all active:scale-95 shadow-lg"
           >
             Load Demo
           </button>
@@ -595,7 +595,7 @@ export default function App() {
     return (
       <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 flex flex-col items-center justify-center gap-4">
         <div className="animate-pulse flex flex-col items-center">
-          <div className="w-14 h-14 bg-indigo-600 rounded-2xl mb-4 shadow-lg" />
+          <div className="w-14 h-14 bg-green-600 rounded-2xl mb-4 shadow-lg" />
           <p className="text-slate-500 font-bold uppercase tracking-widest text-xs">Loading...</p>
         </div>
       </div>
@@ -703,12 +703,12 @@ export default function App() {
             {/* Hamburger menu button for mobile sidebar */}
             <button 
               onClick={() => setIsSidebarCollapsed(prev => !prev)}
-              className="p-1.5 hover:bg-slate-100 rounded-xl transition-all text-slate-500 hover:text-indigo-600 active:scale-95"
+              className="p-1.5 hover:bg-slate-100 rounded-xl transition-all text-slate-500 hover:text-green-600 active:scale-95"
               title={isSidebarCollapsed ? "Expand Menu" : "Collapse Menu"}
             >
               <Menu className="w-5 h-5" />
             </button>
-            <div className="w-8 h-8 bg-indigo-600 rounded-lg flex items-center justify-center text-white text-xl shadow-lg shadow-indigo-200 shrink-0">G</div>
+            <div className="w-8 h-8 bg-green-600 rounded-lg flex items-center justify-center text-white text-xl shadow-lg shadow-green-200 shrink-0">G</div>
             <div>
               <h1 className="text-base md:text-xl font-black tracking-tighter text-slate-900 uppercase">GigMate</h1>
               <p className="hidden sm:block text-[8px] text-slate-400 font-bold uppercase tracking-widest -mt-1 leading-none">{profile.role === 'leader' ? 'Workspace Admin' : 'Active Account'}</p>
@@ -723,7 +723,7 @@ export default function App() {
                   onClick={() => setView(item.id)}
                   className={cn(
                     "px-5 py-1.5 text-xs font-black uppercase tracking-widest rounded-full transition-all",
-                    view === item.id ? "bg-white shadow-sm text-indigo-600" : "text-slate-500 hover:text-slate-700"
+                    view === item.id ? "bg-white shadow-sm text-green-600" : "text-slate-500 hover:text-slate-700"
                   )}
                 >
                   {item.label}
@@ -738,7 +738,7 @@ export default function App() {
                 className={cn(
                   "px-3 h-8 rounded-full border-2 flex items-center justify-center text-[9px] font-black uppercase tracking-widest transition-all shadow-sm",
                   selectedMemberId === 'everyone' 
-                    ? "bg-indigo-600 text-white border-white z-20 ring-2 ring-indigo-100" 
+                    ? "bg-green-600 text-white border-white z-20 ring-2 ring-green-100" 
                     : "bg-slate-100 text-slate-500 border-transparent hover:bg-slate-200"
                 )}
               >
@@ -753,7 +753,7 @@ export default function App() {
                     className={cn(
                       "w-8 h-8 rounded-full border-2 border-white flex items-center justify-center text-[10px] font-black transition-all hover:translate-y-[-2px] hover:z-10 relative shadow-sm",
                       selectedMemberId === member.uid
-                        ? "bg-indigo-600 text-white z-20 ring-2 ring-indigo-100" 
+                        ? "bg-green-600 text-white z-20 ring-2 ring-green-100" 
                         : "bg-slate-100 text-slate-600"
                     )}
                     title={member.displayName}
@@ -769,7 +769,7 @@ export default function App() {
             <div className="text-right">
               <p className="text-[9px] text-slate-400 font-bold uppercase tracking-widest leading-tight truncate max-w-[80px] md:max-w-none">{team?.name || 'Loading...'}</p>
               <div className="flex items-center gap-2 justify-end">
-                <span className="hidden sm:inline text-[9px] font-black text-indigo-600 uppercase tracking-widest">{profile.displayName.split(' ')[0]}</span>
+                <span className="hidden sm:inline text-[9px] font-black text-green-600 uppercase tracking-widest">{profile.displayName.split(' ')[0]}</span>
                 <span className="w-8 h-8 md:w-9 md:h-9 rounded-full bg-slate-100 flex items-center justify-center text-slate-600 font-black text-xs md:text-sm border border-slate-200">
                   {profile.displayName.charAt(0)}
                 </span>
@@ -794,7 +794,7 @@ export default function App() {
              onClick={() => setView('schedule')}
              className={cn(
                "flex flex-col items-center gap-1 transition-all",
-               view === 'schedule' ? "text-indigo-600 scale-105" : "text-slate-400"
+               view === 'schedule' ? "text-green-600 scale-105" : "text-slate-400"
              )}
            >
              <CalendarIcon className="w-5 h-5" />
@@ -804,7 +804,7 @@ export default function App() {
              onClick={() => setView('chat')}
              className={cn(
                "flex flex-col items-center gap-1 transition-all",
-               view === 'chat' ? "text-indigo-600 scale-105" : "text-slate-400"
+               view === 'chat' ? "text-green-600 scale-105" : "text-slate-400"
              )}
            >
              <MessageSquare className="w-5 h-5" />
@@ -827,9 +827,9 @@ export default function App() {
                         setPendingAssignment(true);
                         setIsFabOpen(false);
                       }}
-                      className="bg-white border border-slate-200 px-6 py-3 rounded-2xl shadow-xl flex items-center gap-3 w-full active:scale-95 transition-all text-slate-700 hover:bg-indigo-50"
+                      className="bg-white border border-slate-200 px-6 py-3 rounded-2xl shadow-xl flex items-center gap-3 w-full active:scale-95 transition-all text-slate-700 hover:bg-green-50"
                     >
-                      <div className="w-8 h-8 rounded-full bg-indigo-100 flex items-center justify-center text-indigo-600">
+                      <div className="w-8 h-8 rounded-full bg-green-100 flex items-center justify-center text-green-600">
                         <Plus className="w-4 h-4" />
                       </div>
                       <div className="text-left">
@@ -862,15 +862,15 @@ export default function App() {
                 title={isFabOpen ? 'Close actions' : 'Open actions'}
                 aria-label={isFabOpen ? 'Close actions' : 'Open actions'}
                 className={cn(
-                  "w-16 h-16 rounded-full bg-indigo-600 shadow-xl flex flex-col items-center justify-center transition-all border-4 border-white active:scale-90",
-                  isFabOpen ? "rotate-45 bg-slate-800" : "bg-indigo-600"
+                  "w-16 h-16 rounded-full bg-green-600 shadow-xl flex flex-col items-center justify-center transition-all border-4 border-white active:scale-90",
+                  isFabOpen ? "rotate-45 bg-slate-800" : "bg-green-600"
                 )}
               >
                 <Plus className="w-6 h-6 text-white" />
               </button>
               {!isFabOpen && (
                 <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 pointer-events-none">
-                   <div className="whitespace-nowrap px-3 py-1 bg-white rounded-full shadow-sm border border-slate-100 text-[7px] font-black uppercase tracking-widest text-indigo-600 mb-16">ASSIGNMENT</div>
+                   <div className="whitespace-nowrap px-3 py-1 bg-white rounded-full shadow-sm border border-slate-100 text-[7px] font-black uppercase tracking-widest text-green-600 mb-16">ASSIGNMENT</div>
                 </div>
               )}
            </div>
@@ -879,7 +879,7 @@ export default function App() {
              onClick={() => setView('earnings')}
              className={cn(
                "flex flex-col items-center gap-1 transition-all",
-               view === 'earnings' ? "text-indigo-600 scale-105" : "text-slate-400"
+               view === 'earnings' ? "text-green-600 scale-105" : "text-slate-400"
              )}
            >
              <DollarSign className="w-5 h-5" />
@@ -889,7 +889,7 @@ export default function App() {
              onClick={() => setView('mileage')}
              className={cn(
                "flex flex-col items-center gap-1 transition-all",
-               view === 'mileage' ? "text-indigo-600 scale-105" : "text-slate-400"
+               view === 'mileage' ? "text-green-600 scale-105" : "text-slate-400"
              )}
            >
              <Car className="w-5 h-5" />
@@ -899,7 +899,7 @@ export default function App() {
              onClick={() => setView('settings')}
              className={cn(
                "flex flex-col items-center gap-1 transition-all",
-               view === 'settings' ? "text-indigo-600 scale-105" : "text-slate-400"
+               view === 'settings' ? "text-green-600 scale-105" : "text-slate-400"
              )}
            >
              <SettingsIcon className="w-5 h-5" />
@@ -921,7 +921,7 @@ export default function App() {
             <div className={cn("flex items-center mb-6", isSidebarCollapsed ? "justify-center" : "justify-between")}>
               {!isSidebarCollapsed && (
                 <div>
-                  <p className="text-[10px] font-black uppercase tracking-widest text-indigo-600">GigMate</p>
+                  <p className="text-[10px] font-black uppercase tracking-widest text-green-600">GigMate</p>
                   <p className="text-[8px] font-bold uppercase tracking-widest text-slate-400">Workspace Menu</p>
                 </div>
               )}
@@ -929,7 +929,7 @@ export default function App() {
                 onClick={() => setIsSidebarCollapsed(prev => !prev)}
                 disabled={!isCompactLayout}
                 className={cn(
-                  "w-10 h-10 rounded-xl border border-slate-200 bg-slate-50 text-slate-500 hover:text-indigo-600 hover:border-indigo-200 transition-all flex items-center justify-center active:scale-95",
+                  "w-10 h-10 rounded-xl border border-slate-200 bg-slate-50 text-slate-500 hover:text-green-600 hover:border-green-200 transition-all flex items-center justify-center active:scale-95",
                   !isCompactLayout && "opacity-40 cursor-default hover:text-slate-500 hover:border-slate-200"
                 )}
                 title={isCompactLayout ? (isSidebarCollapsed ? "Expand Menu" : "Collapse Menu") : "Desktop menu stays expanded"}
@@ -967,8 +967,8 @@ export default function App() {
                         "flex items-center gap-3 rounded-xl border transition-all active:scale-95",
                         isSidebarCollapsed ? "w-10 h-10 justify-center p-0" : "w-full px-3 py-2.5",
                         view === item.id
-                          ? "bg-indigo-600 text-white border-indigo-600 shadow-md shadow-indigo-600/15"
-                          : "bg-slate-50 border-slate-200 text-slate-600 hover:border-indigo-200 hover:text-indigo-600"
+                          ? "bg-green-600 text-white border-green-600 shadow-md shadow-green-600/15"
+                          : "bg-slate-50 border-slate-200 text-slate-600 hover:border-green-200 hover:text-green-600"
                       )}
                       title={item.label}
                     >
@@ -1007,14 +1007,14 @@ export default function App() {
                         className={cn(
                           "flex items-center gap-3 rounded-xl border transition-all relative group/item",
                           isSidebarCollapsed ? "w-10 h-10 p-0 justify-center" : "w-full p-3",
-                          selectedMemberId === 'everyone' ? "bg-indigo-600 text-white border-indigo-600" : "bg-slate-50 border-slate-200 text-slate-600 hover:border-indigo-300"
+                          selectedMemberId === 'everyone' ? "bg-green-600 text-white border-green-600" : "bg-slate-50 border-slate-200 text-slate-600 hover:border-green-300"
                         )}
                         title="Everyone"
                       >
                         <div className={cn(
                           "rounded-full flex items-center justify-center font-bold shadow-sm",
                           isSidebarCollapsed ? "w-7 h-7" : "w-8 h-8",
-                          selectedMemberId === 'everyone' ? "bg-white/20" : "bg-indigo-100 text-indigo-600"
+                          selectedMemberId === 'everyone' ? "bg-white/20" : "bg-green-100 text-green-600"
                         )}>
                           <Users className={isSidebarCollapsed ? "w-3 h-3" : "w-4 h-4"} />
                         </div>
@@ -1030,7 +1030,7 @@ export default function App() {
                           key={member.uid}
                           className={cn(
                             "flex items-center justify-between gap-2 rounded-xl border transition-all relative group/item p-2",
-                            selectedMemberId === member.uid ? "bg-indigo-600 border-indigo-600" : "bg-slate-50 border-slate-200 hover:border-indigo-300"
+                            selectedMemberId === member.uid ? "bg-green-600 border-green-600" : "bg-slate-50 border-slate-200 hover:border-green-300"
                           )}
                         >
                           <button 
@@ -1058,7 +1058,7 @@ export default function App() {
                                 </p>
                                 <p className={cn(
                                   "text-[8px] uppercase font-black tracking-widest",
-                                  selectedMemberId === member.uid ? "text-indigo-200" : "text-slate-400"
+                                  selectedMemberId === member.uid ? "text-green-200" : "text-slate-400"
                                 )}>
                                   {member.role === 'leader' ? 'Leader' : 'Member'}
                                 </p>
@@ -1092,7 +1092,7 @@ export default function App() {
                   <div className="flex items-center justify-between mb-4">
                     <button 
                       onClick={() => toggleSection('categories')}
-                      className="flex items-center gap-2 text-[10px] font-bold text-slate-400 uppercase tracking-widest hover:text-indigo-600 transition-colors"
+                      className="flex items-center gap-2 text-[10px] font-bold text-slate-400 uppercase tracking-widest hover:text-green-600 transition-colors"
                     >
                       <span>Categories</span>
                       {collapsedSections.categories ? <ChevronDown className="w-3 h-3" /> : <ChevronUp className="w-3 h-3" />}
@@ -1100,7 +1100,7 @@ export default function App() {
                     {profile.role === 'leader' && (
                       <button 
                         onClick={() => setShowCategoriesModal(true)}
-                        className="p-1 hover:bg-slate-100 rounded-lg text-indigo-600 transition-all hover:scale-110 active:scale-95 flex items-center justify-center"
+                        className="p-1 hover:bg-slate-100 rounded-lg text-green-600 transition-all hover:scale-110 active:scale-95 flex items-center justify-center"
                         title="Edit Categories"
                       >
                         <Plus className="w-3.5 h-3.5" />
@@ -1126,10 +1126,10 @@ export default function App() {
                 </div>
 
                 {/* Miles Tracker Sidebar Widget (Milestone 10) */}
-                <div className="my-6 p-4 bg-indigo-50/50 rounded-2xl border border-indigo-100/50 flex flex-col gap-3">
+                <div className="my-6 p-4 bg-green-50/50 rounded-2xl border border-green-100/50 flex flex-col gap-3">
                   <div className="flex items-center justify-between">
                     <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Miles Today</span>
-                    <span className="text-[8px] font-black uppercase text-indigo-600 bg-indigo-50 px-2 py-0.5 rounded-md">PWA GPS</span>
+                    <span className="text-[8px] font-black uppercase text-green-600 bg-green-50 px-2 py-0.5 rounded-md">PWA GPS</span>
                   </div>
 
                   <div className="flex justify-between items-center">
@@ -1148,7 +1148,7 @@ export default function App() {
                         "px-3.5 py-2 rounded-xl text-[9px] font-black uppercase tracking-widest transition-all shadow-md active:scale-95 flex items-center gap-1.5",
                         sidebarActiveTrip 
                           ? "bg-rose-600 text-white shadow-rose-600/10 hover:bg-rose-700" 
-                          : "bg-indigo-600 text-white shadow-indigo-600/10 hover:bg-indigo-700"
+                          : "bg-green-600 text-white shadow-green-600/10 hover:bg-green-700"
                       )}
                     >
                       {sidebarActiveTrip ? (
@@ -1189,7 +1189,7 @@ export default function App() {
                             <div className="mt-4 pt-4 border-t border-slate-800 space-y-1">
                               <div className="flex justify-between text-[10px] font-bold">
                                 <span className="text-slate-400 uppercase tracking-tight">Leader ({splitPayPercent}%)</span>
-                                <span className="text-indigo-400">${driverTotal.toFixed(2)}</span>
+                                <span className="text-green-400">${driverTotal.toFixed(2)}</span>
                               </div>
                               <div className="flex justify-between text-[10px] font-bold">
                                 <span className="text-slate-400 uppercase tracking-tight">Asst. ({100 - splitPayPercent}%)</span>
@@ -1364,7 +1364,7 @@ export default function App() {
                 <label className="block text-[10px] font-black uppercase text-slate-400 mb-2 font-mono">Custom Name</label>
                 <input 
                   type="text"
-                  className="w-full bg-slate-50 border border-slate-200 rounded-2xl px-5 py-4 outline-none focus:ring-2 focus:ring-indigo-600 font-bold transition-all shadow-inner"
+                  className="w-full bg-slate-50 border border-slate-200 rounded-2xl px-5 py-4 outline-none focus:ring-2 focus:ring-green-600 font-bold transition-all shadow-inner"
                   value={editMemberName}
                   onChange={(e) => setEditMemberName(e.target.value)}
                 />
@@ -1380,7 +1380,7 @@ export default function App() {
                       style={{ backgroundColor: c }}
                       className={cn(
                         "w-7 h-7 rounded-lg border-4 transition-all",
-                        editMemberColor === c ? "border-white scale-110 shadow-lg ring-2 ring-indigo-100" : "border-transparent opacity-40 hover:opacity-100"
+                        editMemberColor === c ? "border-white scale-110 shadow-lg ring-2 ring-green-100" : "border-transparent opacity-40 hover:opacity-100"
                       )}
                     />
                   ))}
@@ -1394,7 +1394,7 @@ export default function App() {
                     onClick={() => setEditMemberRole('member')}
                     className={cn(
                       "flex-1 py-3 text-xs font-black uppercase tracking-widest rounded-xl transition-all",
-                      editMemberRole === 'member' ? "bg-white text-indigo-600 shadow-sm" : "text-slate-500"
+                      editMemberRole === 'member' ? "bg-white text-green-600 shadow-sm" : "text-slate-500"
                     )}
                   >
                     Member
@@ -1403,7 +1403,7 @@ export default function App() {
                     onClick={() => setEditMemberRole('leader')}
                     className={cn(
                       "flex-1 py-3 text-xs font-black uppercase tracking-widest rounded-xl transition-all",
-                      editMemberRole === 'leader' ? "bg-white text-indigo-600 shadow-sm" : "text-slate-500"
+                      editMemberRole === 'leader' ? "bg-white text-green-600 shadow-sm" : "text-slate-500"
                     )}
                   >
                     Leader
@@ -1423,7 +1423,7 @@ export default function App() {
                 <button 
                   disabled={isSavingMember}
                   onClick={handleSaveMemberConfig}
-                  className="flex-1 h-14 bg-indigo-600 text-white rounded-2xl font-black text-[10px] uppercase tracking-widest hover:bg-indigo-700 disabled:opacity-50 transition-all shadow-xl shadow-indigo-600/20 active:scale-95 flex items-center justify-center"
+                  className="flex-1 h-14 bg-green-600 text-white rounded-2xl font-black text-[10px] uppercase tracking-widest hover:bg-green-700 disabled:opacity-50 transition-all shadow-xl shadow-green-600/20 active:scale-95 flex items-center justify-center"
                 >
                   {isSavingMember ? 'Saving...' : 'Save Changes'}
                 </button>
@@ -1542,29 +1542,29 @@ function LoginView({
   };
 
   return (
-    <div className="min-h-screen bg-slate-100 flex items-center justify-center p-4 sm:p-6">
-      <div className="w-full max-w-5xl overflow-hidden rounded-2xl bg-white shadow-2xl border border-slate-200 grid lg:grid-cols-[0.9fr_1.1fr]">
-        <div className="bg-slate-950 text-white p-8 sm:p-10 flex flex-col justify-between gap-10">
+    <div className="min-h-screen ombre-gradient-blue-green flex items-center justify-center p-4 sm:p-6">
+      <div className="w-full max-w-2xl flex flex-col items-center gap-6">
+        <div className="ombre-gradient-blue-green text-white p-8 sm:p-10 rounded-2xl flex flex-col items-center text-center gap-10 w-full">
           <div>
-            <div className="w-14 h-14 bg-emerald-500 rounded-2xl flex items-center justify-center mb-6 shadow-lg">
+            <div className="w-14 h-14 bg-green-500 rounded-2xl flex items-center justify-center mb-6 shadow-lg mx-auto">
               <Briefcase className="w-7 h-7" />
             </div>
             <h1 className="text-4xl font-black tracking-tight mb-3">GigMate</h1>
-            <p className="text-slate-300 text-sm leading-6 max-w-sm">Team scheduling, chat, earnings, and mileage in one installable workspace.</p>
+            <p className="text-slate-300 text-sm leading-6">Team scheduling, chat, earnings, and mileage in one installable workspace.</p>
           </div>
           <div className="grid gap-3 text-sm text-slate-200">
             {['Create or join a team', 'Schedule shifts together', 'Track earnings and mileage'].map(item => (
-              <div key={item} className="flex items-center gap-3">
-                <CheckCircle2 className="w-5 h-5 text-emerald-400 shrink-0" />
+              <div key={item} className="flex items-center gap-3 justify-center">
+                <CheckCircle2 className="w-5 h-5 text-green-400 shrink-0" />
                 <span>{item}</span>
               </div>
             ))}
           </div>
         </div>
 
-        <div className="p-6 sm:p-10">
-          <div className="mb-7">
-            <p className="text-xs font-black uppercase tracking-widest text-emerald-700 mb-2">Account</p>
+        <div className="p-6 sm:p-10 bg-white rounded-2xl shadow-2xl ring-1 ring-white/20 backdrop-blur-xl border border-white/40 w-full" style={{boxShadow: '0 20px 60px rgba(0,0,0,0.15), 0 0 1px rgba(255,255,255,0.5) inset'}}>
+          <div className="mb-7 text-center">
+            <p className="text-xs font-black uppercase tracking-widest text-green-700 mb-2">Account</p>
             <h2 className="text-2xl sm:text-3xl font-black text-slate-950 tracking-tight">Sign in to continue</h2>
           </div>
 
@@ -1577,13 +1577,13 @@ function LoginView({
             Continue with Google
           </button>
 
-          <div className="flex items-center gap-3 my-6">
+          <div className="flex items-center gap-3 my-6 w-full">
             <div className="h-px flex-1 bg-slate-200" />
             <span className="text-xs font-bold uppercase tracking-widest text-slate-400">or</span>
             <div className="h-px flex-1 bg-slate-200" />
           </div>
 
-          <div className="grid grid-cols-2 gap-2 rounded-xl bg-slate-100 p-1 mb-5">
+          <div className="grid grid-cols-2 gap-2 rounded-xl bg-slate-100 p-1 mb-5 w-full">
             <button
               type="button"
               onClick={() => setMode('email')}
@@ -1618,7 +1618,7 @@ function LoginView({
                     <input
                       value={displayName}
                       onChange={(event) => setDisplayName(event.target.value)}
-                      className="w-full h-12 pl-11 pr-4 rounded-xl border border-slate-300 focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                      className="w-full h-12 pl-11 pr-4 rounded-xl border border-slate-300 focus:outline-none focus:ring-2 focus:ring-green-500"
                       placeholder="Your name"
                     />
                   </div>
@@ -1632,7 +1632,7 @@ function LoginView({
                     type="email"
                     value={email}
                     onChange={(event) => setEmail(event.target.value)}
-                    className="w-full h-12 pl-11 pr-4 rounded-xl border border-slate-300 focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                    className="w-full h-12 pl-11 pr-4 rounded-xl border border-slate-300 focus:outline-none focus:ring-2 focus:ring-green-500"
                     placeholder="you@example.com"
                     autoComplete="email"
                   />
@@ -1646,7 +1646,7 @@ function LoginView({
                     type="password"
                     value={password}
                     onChange={(event) => setPassword(event.target.value)}
-                    className="w-full h-12 pl-11 pr-4 rounded-xl border border-slate-300 focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                    className="w-full h-12 pl-11 pr-4 rounded-xl border border-slate-300 focus:outline-none focus:ring-2 focus:ring-green-500"
                     placeholder="Password"
                     autoComplete={isCreatingAccount ? 'new-password' : 'current-password'}
                   />
@@ -1770,10 +1770,10 @@ function OnboardingView({ onCreate, onJoin }: {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-indigo-600 via-slate-50 to-slate-100 flex items-center justify-center p-6 relative overflow-hidden">
+    <div className="min-h-screen ombre-gradient-blue-green flex items-center justify-center p-6 relative overflow-hidden">
       {/* Background decoration */}
-      <div className="absolute top-20 right-20 w-72 h-72 bg-indigo-200/20 rounded-full blur-3xl" />
-      <div className="absolute bottom-20 left-20 w-96 h-96 bg-indigo-300/10 rounded-full blur-3xl" />
+      <div className="absolute top-20 right-20 w-72 h-72 bg-green-200/20 rounded-full blur-3xl" />
+      <div className="absolute bottom-20 left-20 w-96 h-96 bg-green-300/10 rounded-full blur-3xl" />
 
       <div className="max-w-lg w-full bg-white rounded-3xl p-10 shadow-2xl border border-slate-200 relative z-10">
         {/* Tab selector */}
@@ -1782,7 +1782,7 @@ function OnboardingView({ onCreate, onJoin }: {
             onClick={() => setMode('create')}
             className={cn(
               "flex-1 py-3 text-xs font-black uppercase tracking-widest rounded-xl transition-all",
-              mode === 'create' ? "bg-white text-indigo-600 shadow-md" : "text-slate-500 hover:text-slate-700"
+              mode === 'create' ? "bg-white text-green-600 shadow-md" : "text-slate-500 hover:text-slate-700"
             )}
           >
             Create
@@ -1791,7 +1791,7 @@ function OnboardingView({ onCreate, onJoin }: {
             onClick={() => setMode('join')}
             className={cn(
               "flex-1 py-3 text-xs font-black uppercase tracking-widest rounded-xl transition-all",
-              mode === 'join' ? "bg-white text-indigo-600 shadow-md" : "text-slate-500 hover:text-slate-700"
+              mode === 'join' ? "bg-white text-green-600 shadow-md" : "text-slate-500 hover:text-slate-700"
             )}
           >
             Join
@@ -1814,7 +1814,7 @@ function OnboardingView({ onCreate, onJoin }: {
               type="text"
               placeholder="e.g. Alex"
               autoFocus
-              className="w-full bg-slate-50 border border-slate-300 rounded-xl px-4 py-3 outline-none focus:ring-2 focus:ring-indigo-600 focus:border-transparent transition-all font-semibold"
+              className="w-full bg-slate-50 border border-slate-300 rounded-xl px-4 py-3 outline-none focus:ring-2 focus:ring-green-600 focus:border-transparent transition-all font-semibold"
               value={displayName}
               onChange={(e) => setDisplayName(e.target.value)}
             />
@@ -1835,7 +1835,7 @@ function OnboardingView({ onCreate, onJoin }: {
                 <input 
                   type="text"
                   placeholder="e.g. Metro Delivery"
-                  className="w-full bg-slate-50 border border-slate-300 rounded-xl px-4 py-3 outline-none focus:ring-2 focus:ring-indigo-600 focus:border-transparent transition-all font-semibold"
+                  className="w-full bg-slate-50 border border-slate-300 rounded-xl px-4 py-3 outline-none focus:ring-2 focus:ring-green-600 focus:border-transparent transition-all font-semibold"
                   value={teamName}
                   onChange={(e) => setTeamName(e.target.value)}
                 />
@@ -1856,7 +1856,7 @@ function OnboardingView({ onCreate, onJoin }: {
                     setLoading(false);
                   }
                 }}
-                className="w-full bg-indigo-600 text-white rounded-xl py-3 px-4 font-bold hover:bg-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed transition-all active:scale-95 flex items-center justify-center gap-2"
+                className="w-full bg-green-600 text-white rounded-xl py-3 px-4 font-bold hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed transition-all active:scale-95 flex items-center justify-center gap-2"
               >
                 {loading ? (
                   <>
@@ -1876,7 +1876,7 @@ function OnboardingView({ onCreate, onJoin }: {
                 <input 
                   type="text"
                   placeholder="Paste the code from your team leader"
-                  className="w-full bg-slate-50 border border-slate-300 rounded-xl px-4 py-3 outline-none focus:ring-2 focus:ring-indigo-600 focus:border-transparent transition-all font-semibold"
+                  className="w-full bg-slate-50 border border-slate-300 rounded-xl px-4 py-3 outline-none focus:ring-2 focus:ring-green-600 focus:border-transparent transition-all font-semibold"
                   value={teamId}
                   onChange={(e) => setTeamId(e.target.value)}
                 />
@@ -1886,7 +1886,7 @@ function OnboardingView({ onCreate, onJoin }: {
               <button 
                 disabled={!teamId?.trim() || !displayName?.trim() || loading}
                 onClick={handleJoin}
-                className="w-full bg-indigo-600 text-white rounded-xl py-3 px-4 font-bold hover:bg-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed transition-all active:scale-95 flex items-center justify-center gap-2"
+                className="w-full bg-green-600 text-white rounded-xl py-3 px-4 font-bold hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed transition-all active:scale-95 flex items-center justify-center gap-2"
               >
                 {loading ? (
                   <>

@@ -12,9 +12,7 @@ export default defineConfig(() => {
       },
     },
     server: {
-      // Keep local auth testing quiet and stable behind the Express dev wrapper.
-      hmr: false,
-      watch: null,
+      middlewareMode: true,
     },
     build: {
       rollupOptions: {

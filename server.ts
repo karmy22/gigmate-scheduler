@@ -4,6 +4,7 @@ import path from "path";
 async function startServer() {
   const app = express();
   const PORT = Number(process.env.PORT) || 3000;
+  const isDevelopment = process.env.NODE_ENV !== "production";
 
   // API Health Check
   app.get("/api/health", (_req, res) => {
@@ -15,7 +16,7 @@ async function startServer() {
   });
 
   // Vite middleware for development
-  if (process.env.NODE_ENV !== "production") {
+  if (isDevelopment) {
     const { createServer: createViteServer } = await import("vite");
     const vite = await createViteServer({
       server: { middlewareMode: true },

@@ -5,10 +5,24 @@
   --font-sans: "Inter", ui-sans-serif, system-ui, sans-serif;
   --font-mono: "JetBrains Mono", ui-monospace, SFMono-Regular, monospace;
   
-  --color-brand: var(--color-indigo-600);
-  --color-brand-light: var(--color-indigo-50);
+  --color-brand: var(--color-green-600);
+  --color-brand-light: var(--color-green-50);
   --color-surface: var(--color-white);
   --color-background: var(--color-slate-50);
+}
+
+@layer utilities {
+  .ombre-gradient {
+    background: linear-gradient(135deg, #10b981 0%, #059669 50%, #047857 100%);
+  }
+
+  .ombre-gradient-blue-green {
+    background: linear-gradient(135deg, #06b6d4 0%, #0891b2 20%, #0d9488 40%, #10b981 60%, #059669 80%, #047857 100%);
+  }
+
+  .ombre-gradient-hero {
+    background: linear-gradient(135deg, #06b6d4 0%, #0891b2 20%, #0d9488 40%, #10b981 60%, #059669 80%, #047857 100%);
+  }
 }
 
 @layer utilities {
