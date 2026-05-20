@@ -509,13 +509,14 @@ export default function App() {
             <div className="mt-3 text-xs text-rose-700">
               <p className="mb-2">Deploy notes:</p>
               <ul className="list-disc list-inside space-y-1">
-                <li>Add the same `VITE_*` environment variables in your Netlify Site settings (Build & deploy → Environment).</li>
-                <li>In Firebase Console → Authentication → Authorized domains, add your Netlify domain (example: <code className="font-mono">your-site.netlify.app</code>) or custom domain.</li>
+                <li>Firebase Hosting uses the values present when you run <code className="font-mono">npm run build</code>.</li>
+                <li>If you build in CI, add the same <code className="font-mono">VITE_*</code> values before the build runs.</li>
+                <li>For Firebase Auth, add localhost, the Firebase Hosting domain, and any custom domain.</li>
               </ul>
               <button
                 onClick={() => {
                   const missing = getMissingFirebaseEnv();
-                  alert(missing.length ? 'Missing vars: ' + missing.join(', ') : 'All required VITE_ vars present (client-side check).');
+                  alert(missing.length ? 'Missing or placeholder vars: ' + missing.join(', ') : 'All required VITE_* vars present (client-side check).');
                 }}
                 className="mt-3 w-full bg-rose-600 text-white rounded-2xl py-2 px-3 font-bold hover:bg-rose-700 transition-all"
               >

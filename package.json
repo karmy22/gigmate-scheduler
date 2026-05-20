@@ -8,6 +8,9 @@
     "build": "vite build && esbuild server.ts --bundle --platform=node --format=cjs --packages=external --sourcemap --outfile=dist/server.cjs",
     "preview": "vite preview --host 0.0.0.0 --port 3000",
     "start": "node dist/server.cjs",
+    "deploy": "npm run build && firebase deploy --only hosting,firestore:rules",
+    "deploy:hosting": "npm run build && firebase deploy --only hosting",
+    "deploy:preview": "npm run build && firebase hosting:channel:deploy preview",
     "clean": "node -e \"fs.rmSync('dist',{recursive:true,force:true}); fs.rmSync('server.js',{force:true})\"",
     "lint": "tsc --noEmit && eslint ."
   },
@@ -36,6 +39,7 @@
     "autoprefixer": "^10.4.21",
     "esbuild": "^0.28.0",
     "eslint": "^10.4.0",
+    "firebase-tools": "^15.18.0",
     "tailwindcss": "^4.1.14",
     "tsx": "^4.22.3",
     "typescript": "~6.0.3",

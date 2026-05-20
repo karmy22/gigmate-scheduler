@@ -217,7 +217,7 @@ It's built with:
 3. **Invite team members** - Share the team code
 4. **Start scheduling** - Create your first shift
 5. **Track earnings** - Log gig income
-6. **Deploy** - Host on Firebase, Vercel, or Netlify
+6. **Deploy** - Host on Firebase Hosting
 
 ---
 

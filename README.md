@@ -14,7 +14,7 @@ GigMate is a PWA-ready scheduling, team chat, mileage, and earnings tracker for 
    npm run dev
    ```
 
-3. Create a local `.env.local` from `.env.example` and fill in the rotated Firebase web config values.
+3. Create a local `.env.local` from `.env.example` and fill in the Firebase web config values as `VITE_*` variables. Vite only reads environment variables with that prefix.
 
 4. Build and run the production app:
    ```bash
@@ -33,15 +33,17 @@ The app includes:
 - `public/sw.js` for app-shell and same-origin asset caching.
 - Service worker registration in `src/main.tsx`.
 - Mobile web app tags in `index.html`.
-- Static host config for Netlify, Vercel, and Firebase Hosting.
+- Firebase Hosting config in `firebase.json`.
 
 After deployment, verify installability with Chrome DevTools Lighthouse and the Application tab. PWAs require HTTPS in production.
 
 ## Publish plan
 
 1. Confirm Firebase is ready:
+   - Install and sign in to the Firebase CLI.
+   - Confirm `.firebaserc` points at the correct project: `scheduling-app-4b7aa`.
    - Lock Firestore rules to the current `firestore.rules`.
-   - Restrict Firebase auth domains to the deployed domain.
+   - In Firebase Console > Authentication > Settings > Authorized domains, include `localhost`, `scheduling-app-4b7aa.firebaseapp.com`, and any custom domain.
    - Revoke the leaked Firebase web API key and create a rotated key.
    - Restrict the rotated Firebase API key by HTTP referrer after the domain is known.
 
@@ -51,22 +53,13 @@ After deployment, verify installability with Chrome DevTools Lighthouse and the 
    npm run build
    ```
 
-3. Deploy as a static PWA.
+3. Deploy to Firebase Hosting.
 
-   Netlify:
-   - `netlify.toml` is already configured.
-   - Build command: `npm run build`.
-   - Publish directory: `dist`.
-   - Add the `VITE_FIREBASE_*` and `VITE_FIRESTORE_DATABASE_ID` values from `.env.example` in Site configuration > Environment variables.
-
-   Vercel:
-   - `vercel.json` is already configured.
-   - Framework preset: Vite.
-   - Output directory: `dist`.
-
-   Firebase Hosting:
    - `firebase.json` is already configured.
-   - Run `firebase deploy --only hosting,firestore:rules` after selecting the Firebase project.
+   - Build locally with `.env.local` present.
+   - Run `npm run deploy` to build, publish Hosting, and deploy Firestore rules.
+   - Run `npm run deploy:preview` to create a Firebase Hosting preview channel first.
+   - If you build in CI, add the same `VITE_FIREBASE_*` values to that CI environment before the build runs.
 
 4. Add a custom domain and HTTPS.
 

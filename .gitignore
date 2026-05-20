@@ -7,6 +7,4 @@ coverage/
 .env*
 !.env.example
 .firebase/*
-
-# Local Netlify folder
-.netlify
+.firebase-config/
