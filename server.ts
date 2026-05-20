@@ -6,7 +6,7 @@ async function startServer() {
   const PORT = Number(process.env.PORT) || 3000;
 
   // API Health Check
-  app.get("/api/health", (req, res) => {
+  app.get("/api/health", (_req, res) => {
     res.json({ 
       status: "ok", 
       message: "GigMate Backend is running",
@@ -25,7 +25,7 @@ async function startServer() {
   } else {
     // Serve static files in production
     const distPath = path.join(process.cwd(), 'dist');
-    app.get('/sw.js', (req, res, next) => {
+    app.get('/sw.js', (_req, res, next) => {
       res.setHeader('Cache-Control', 'no-cache');
       next();
     });
@@ -36,7 +36,7 @@ async function startServer() {
     app.use(express.static(distPath));
     
     // Fallback all other routes to index.html (SPA logic)
-    app.get('*', (req, res) => {
+    app.get('*', (_req, res) => {
       res.sendFile(path.join(distPath, 'index.html'));
     });
   }
